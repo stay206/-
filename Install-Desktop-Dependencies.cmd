@@ -25,7 +25,7 @@ set "ELECTRON_SKIP_BINARY_DOWNLOAD="
 set "npm_config_electron_skip_binary_download="
 set "ELECTRON_CUSTOM_DIR="
 set "npm_config_electron_custom_dir="
-set "ELECTRON_VERSION=31.7.7"
+set "ELECTRON_VERSION=37.2.6"
 set "ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/"
 set "npm_config_registry=https://registry.npmmirror.com"
 set "npm_config_cache=%CD%\.npm-cache"
@@ -47,7 +47,7 @@ echo [Bangumi Vault] Using npm registry: https://registry.npmmirror.com
 echo [Bangumi Vault] Using Electron mirror: %ELECTRON_MIRROR%
 echo.
 
-call npm install --registry=https://registry.npmmirror.com --foreground-scripts --loglevel=info --no-audit --no-fund
+call npm install --registry=https://registry.npmmirror.com --foreground-scripts --loglevel=info --no-audit --no-fund --package-lock=false
 if errorlevel 1 (
   echo.
   echo [Bangumi Vault] npm install failed.

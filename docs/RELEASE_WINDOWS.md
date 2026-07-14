@@ -22,6 +22,13 @@ Build-Windows-Desktop.cmd
 dist/
 ```
 
+## 安装目录资料库保护
+
+- 桌面版与便携版都将离线资料保存在程序同级的 `资料库/`。
+- `build/installer.nsh` 是 Windows 安装器的一部分，升级时会先保护旧版 `资料库/`，完成程序替换后再恢复；手动卸载只移除程序文件，不会删除该目录。
+- `package.json` 已通过 `build.nsis.include` 固定加载此脚本。重新运行 `npm run dist:win` 或 `Build-Windows-Desktop.cmd` 会自动带上相同保护，不要删除或改名 `build/installer.nsh`。
+- 为了让程序可写入同级资料库，建议安装到当前用户有写入权限的位置；不要选择受保护且不可写的系统目录。
+
 ## 发布前检查
 
 - 不要把 `node_modules/`、`dist/`、`.npm-cache/` 提交到 Git。

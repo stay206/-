@@ -1,14 +1,29 @@
 const { contextBridge, ipcRenderer } = require('electron');
+const hasNativeWindowControls = process.platform === 'win32';
 
 const desktopApi = {
   minimize: () => ipcRenderer.invoke('window:minimize'),
   toggleMaximize: () => ipcRenderer.invoke('window:toggle-maximize'),
+  getWindowState: () => ipcRenderer.invoke('window:get-state'),
   close: () => ipcRenderer.invoke('window:close'),
   openDataDir: () => ipcRenderer.invoke('app:open-data-dir'),
   getInfo: () => ipcRenderer.invoke('app:get-info')
 };
 
 contextBridge.exposeInMainWorld('bangumiDesktop', desktopApi);
+
+function syncWindowCornerMode(maximized) {
+  document.documentElement.classList.toggle('bangumi-window-maximized', !!maximized);
+}
+
+async function syncWindowCornerModeFromHost() {
+  try {
+    const state = await desktopApi.getWindowState();
+    syncWindowCornerMode(state?.maximized);
+  } catch {}
+}
+
+ipcRenderer.on('window:state', (_event, state) => syncWindowCornerMode(state?.maximized));
 
 function injectDesktopTitlebar() {
   if (document.getElementById('bangumi-desktop-titlebar')) return;
@@ -25,6 +40,11 @@ function injectDesktopTitlebar() {
       height: 100vh !important;
       padding-top: calc(18px + var(--desktop-titlebar-height)) !important;
     }
+    html.bangumi-native-controls #bangumi-desktop-titlebar { right: 154px; }
+    html.bangumi-native-controls #bangumi-desktop-titlebar .desktop-actions { padding: 4px 0; }
+    html.bangumi-native-controls #bangumi-desktop-titlebar .desktop-actions .min,
+    html.bangumi-native-controls #bangumi-desktop-titlebar .desktop-actions .max,
+    html.bangumi-native-controls #bangumi-desktop-titlebar .desktop-actions .close { display: none; }
     #bangumi-desktop-titlebar {
       position: fixed;
       inset: 0 0 auto 0;
@@ -97,12 +117,12 @@ function injectDesktopTitlebar() {
       height: 100%;
       display: flex;
       align-items: stretch;
-      padding-right: 4px;
+      padding: 4px 12px 4px 0;
       -webkit-app-region: no-drag;
     }
     #bangumi-desktop-titlebar button {
-      min-width: 46px;
-      height: 100%;
+      min-width: 42px;
+      height: 28px;
       border: 0;
       color: currentColor;
       background: transparent;
@@ -153,6 +173,7 @@ function injectDesktopTitlebar() {
     }
   `;
   document.documentElement.classList.add('bangumi-desktop-shell');
+  if (hasNativeWindowControls) document.documentElement.classList.add('bangumi-native-controls');
   document.head.appendChild(style);
 
   const bar = document.createElement('div');
@@ -169,11 +190,23 @@ function injectDesktopTitlebar() {
       <button class="close" type="button" title="关闭" aria-label="关闭"><svg class="window-glyph" viewBox="0 0 14 14" aria-hidden="true"><path d="M3.3 3.3l7.4 7.4M10.7 3.3l-7.4 7.4"/></svg></button>
     </div>
   `;
-  document.body.prepend(bar);
+  (document.getElementById('appRoot') || document.body).prepend(bar);
   bar.querySelector('.data-dir').addEventListener('click', () => desktopApi.openDataDir());
-  bar.querySelector('.min').addEventListener('click', () => desktopApi.minimize());
-  bar.querySelector('.max').addEventListener('click', () => desktopApi.toggleMaximize());
-  bar.querySelector('.close').addEventListener('click', () => desktopApi.close());
+  if (!hasNativeWindowControls) {
+    bar.querySelector('.min').addEventListener('click', () => desktopApi.minimize());
+    bar.querySelector('.max').addEventListener('click', async () => {
+      const maximized = await desktopApi.toggleMaximize();
+      syncWindowCornerMode(maximized);
+    });
+    bar.querySelector('.close').addEventListener('click', () => desktopApi.close());
+  }
+  bar.addEventListener('dblclick', event => {
+    if (!event.target.closest('button')) desktopApi.toggleMaximize().then(syncWindowCornerMode);
+  });
 }
 
-window.addEventListener('DOMContentLoaded', injectDesktopTitlebar, { once: true });
+window.addEventListener('DOMContentLoaded', () => {
+  injectDesktopTitlebar();
+  syncWindowCornerModeFromHost();
+  window.addEventListener('focus', syncWindowCornerModeFromHost);
+}, { once: true });
