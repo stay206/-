@@ -19,8 +19,11 @@ const TAGS_FILE_NAME = '标签数据.json';
 const HISTORY_FILE_NAME = '变更历史.json';
 const TIMELINE_FILE_NAME = '时间胶囊数据.json';
 const WINDOW_STATE_FILE_NAME = '窗口状态.json';
-const APP_USER_AGENT = 'AKISATO57/AKI-Bangumi-Vault/0.30.5 (https://github.com/AKISATO57/AKI-Bangumi-Vault)';
+const APP_USER_AGENT = 'AKISATO57/AKI-Bangumi-Vault/0.31.0 (https://github.com/AKISATO57/AKI-Bangumi-Vault)';
 const IMAGE_ACCEPT = 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8';
+const MAX_CACHED_COVER_EDGE = 4096;
+const CACHED_COVER_JPEG_QUALITY = 95;
+const COVER_LAZY_OPTIMIZE_MIN_BYTES = 2 * 1024 * 1024;
 const TIMELINE_REQUEST_INTERVAL_MS = 1250;
 const RUNTIME_LOG_RETENTION_DAYS = 30;
 const RUNTIME_LOG_BATCH_LIMIT = 120;
@@ -42,6 +45,7 @@ let timelineNextRequestAt = 0;
 let timelineRequestTail = Promise.resolve();
 let runtimeLogWriteTail = Promise.resolve();
 let saveWindowStateTimer = null;
+const coverOptimizationJobs = new Map();
 
 function chooseDataDir() {
   if (process.env.BANGUMI_VAULT_DATA_DIR) {
@@ -353,6 +357,189 @@ function normalizeContentType(headers) {
   const direct = headers['content-type'] || headers['Content-Type'];
   if (Array.isArray(direct)) return direct[0] || '';
   return direct || '';
+}
+
+function cachedCoverExtension(filePath) {
+  const ext = path.extname(filePath).toLowerCase();
+  return ['.jpg', '.jpeg', '.png'].includes(ext) ? ext : '';
+}
+
+function cachedCoverDimensions(buffer) {
+  if (!Buffer.isBuffer(buffer) || buffer.length < 24) return null;
+
+  // PNG: the IHDR width/height fields are fixed at offsets 16 and 20.
+  if (
+    buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4e && buffer[3] === 0x47 &&
+    buffer[4] === 0x0d && buffer[5] === 0x0a && buffer[6] === 0x1a && buffer[7] === 0x0a
+  ) {
+    const width = buffer.readUInt32BE(16);
+    const height = buffer.readUInt32BE(20);
+    return width > 0 && height > 0 ? { width, height } : null;
+  }
+
+  // JPEG: scan marker segments until a Start Of Frame marker is found.
+  if (buffer[0] === 0xff && buffer[1] === 0xd8) {
+    let offset = 2;
+    const sofMarkers = new Set([
+      0xc0, 0xc1, 0xc2, 0xc3,
+      0xc5, 0xc6, 0xc7,
+      0xc9, 0xca, 0xcb,
+      0xcd, 0xce, 0xcf
+    ]);
+    while (offset + 4 <= buffer.length) {
+      while (offset < buffer.length && buffer[offset] !== 0xff) offset += 1;
+      while (offset < buffer.length && buffer[offset] === 0xff) offset += 1;
+      if (offset >= buffer.length) break;
+      const marker = buffer[offset++];
+      if (marker === 0xd8 || marker === 0x01 || (marker >= 0xd0 && marker <= 0xd7)) continue;
+      if (marker === 0xd9 || marker === 0xda) break;
+      if (offset + 2 > buffer.length) break;
+      const segmentLength = buffer.readUInt16BE(offset);
+      if (segmentLength < 2 || offset + segmentLength > buffer.length) break;
+      if (sofMarkers.has(marker) && segmentLength >= 7) {
+        const height = buffer.readUInt16BE(offset + 3);
+        const width = buffer.readUInt16BE(offset + 5);
+        return width > 0 && height > 0 ? { width, height } : null;
+      }
+      offset += segmentLength;
+    }
+  }
+
+  return null;
+}
+
+async function readCachedCoverDimensions(filePath, fileSize) {
+  const probeSize = Math.min(Math.max(Number(fileSize) || 0, 24), 256 * 1024);
+  const handle = await fsp.open(filePath, 'r');
+  try {
+    const probe = Buffer.allocUnsafe(probeSize);
+    const { bytesRead } = await handle.read(probe, 0, probeSize, 0);
+    return cachedCoverDimensions(probe.subarray(0, bytesRead));
+  } finally {
+    await handle.close();
+  }
+}
+
+function optimizeCachedCoverBuffer(buffer, ext, knownDimensions = null) {
+  const supportedExt = cachedCoverExtension(`cover${ext}`);
+  if (!supportedExt || !Buffer.isBuffer(buffer) || !buffer.length) {
+    return { optimized: false, buffer, reason: 'unsupported' };
+  }
+
+  let dimensions = knownDimensions || cachedCoverDimensions(buffer);
+  if (dimensions && Math.max(dimensions.width, dimensions.height) <= MAX_CACHED_COVER_EDGE) {
+    return { optimized: false, buffer, dimensions, reason: 'within-limit' };
+  }
+
+  const image = nativeImage.createFromBuffer(buffer);
+  if (image.isEmpty()) return { optimized: false, buffer, dimensions, reason: 'decode-failed' };
+  dimensions = image.getSize();
+  const longestEdge = Math.max(dimensions.width, dimensions.height);
+  if (!Number.isFinite(longestEdge) || longestEdge <= MAX_CACHED_COVER_EDGE) {
+    return { optimized: false, buffer, dimensions, reason: 'within-limit' };
+  }
+
+  const resizeOptions = dimensions.width >= dimensions.height
+    ? { width: MAX_CACHED_COVER_EDGE, quality: 'best' }
+    : { height: MAX_CACHED_COVER_EDGE, quality: 'best' };
+  const resized = image.resize(resizeOptions);
+  if (resized.isEmpty()) return { optimized: false, buffer, dimensions, reason: 'resize-failed' };
+  const target = resized.getSize();
+
+  const output = supportedExt === '.png'
+    ? resized.toPNG()
+    : resized.toJPEG(CACHED_COVER_JPEG_QUALITY);
+  if (!output?.length) return { optimized: false, buffer, dimensions, reason: 'encode-failed' };
+
+  return {
+    optimized: true,
+    buffer: output,
+    dimensions,
+    target
+  };
+}
+
+async function replaceFileSafely(filePath, buffer) {
+  const tempPath = `${filePath}.opt-${process.pid}-${Date.now()}.tmp`;
+  await fsp.writeFile(tempPath, buffer);
+  try {
+    await fsp.rename(tempPath, filePath);
+  } catch (renameError) {
+    try {
+      await fsp.copyFile(tempPath, filePath);
+      await fsp.unlink(tempPath).catch(() => {});
+    } catch (copyError) {
+      await fsp.unlink(tempPath).catch(() => {});
+      throw copyError || renameError;
+    }
+  }
+}
+
+async function performCachedCoverOptimization(filePath) {
+  const ext = cachedCoverExtension(filePath);
+  if (!ext) return { optimized: false, reason: 'unsupported' };
+
+  let stat;
+  try {
+    stat = await fsp.stat(filePath);
+  } catch {
+    return { optimized: false, reason: 'missing' };
+  }
+  if (!stat.isFile()) return { optimized: false, reason: 'not-file' };
+
+  let dimensions = null;
+  try {
+    dimensions = await readCachedCoverDimensions(filePath, stat.size);
+  } catch {}
+  if (dimensions && Math.max(dimensions.width, dimensions.height) <= MAX_CACHED_COVER_EDGE) {
+    return { optimized: false, reason: 'within-limit', dimensions };
+  }
+
+  const original = await fsp.readFile(filePath);
+  const result = optimizeCachedCoverBuffer(original, ext, dimensions);
+  if (!result.optimized) return result;
+  await replaceFileSafely(filePath, result.buffer);
+  return {
+    ...result,
+    originalBytes: original.length,
+    optimizedBytes: result.buffer.length
+  };
+}
+
+function optimizeCachedCoverFile(filePath) {
+  const key = path.resolve(filePath);
+  const existing = coverOptimizationJobs.get(key);
+  if (existing) return existing;
+  const job = performCachedCoverOptimization(key)
+    .catch(error => ({ optimized: false, reason: 'error', error }))
+    .finally(() => coverOptimizationJobs.delete(key));
+  coverOptimizationJobs.set(key, job);
+  return job;
+}
+
+async function optimizeExistingOversizedCovers() {
+  let entries = [];
+  try {
+    entries = await fsp.readdir(imagesDir, { withFileTypes: true });
+  } catch {
+    return;
+  }
+
+  let optimizedCount = 0;
+  for (const entry of entries) {
+    if (!entry.isFile() || !/^\d+\.(?:jpe?g|png)$/i.test(entry.name)) continue;
+    const result = await optimizeCachedCoverFile(path.join(imagesDir, entry.name));
+    if (result.optimized) {
+      optimizedCount += 1;
+      console.log(
+        `[cover-cache] optimized ${entry.name}: ` +
+        `${result.dimensions.width}x${result.dimensions.height} -> ${result.target.width}x${result.target.height}`
+      );
+    }
+    // Keep the background maintenance pass from monopolizing the event loop.
+    await new Promise(resolve => setTimeout(resolve, 8));
+  }
+  if (optimizedCount > 0) console.log(`[cover-cache] optimized ${optimizedCount} oversized cover(s)`);
 }
 
 function downloadBufferViaNode(remoteUrl, redirectsLeft = 5) {
@@ -776,14 +963,27 @@ async function handleRequest(req, res) {
     const ext = guessImageExt(downloaded.contentType, remoteUrl);
     const file = `${sid}${ext}`;
     const target = path.join(imagesDir, file);
-    await fsp.writeFile(target, downloaded.buffer);
-    send(res, 200, JSON.stringify({ ok: true, url: `/images/${file}`, file: `${IMAGES_DIR_NAME}/${file}` }), 'application/json; charset=utf-8');
+    const optimized = optimizeCachedCoverBuffer(downloaded.buffer, ext);
+    await fsp.writeFile(target, optimized.optimized ? optimized.buffer : downloaded.buffer);
+    send(res, 200, JSON.stringify({
+      ok: true,
+      url: `/images/${file}`,
+      file: `${IMAGES_DIR_NAME}/${file}`,
+      optimized: !!optimized.optimized
+    }), 'application/json; charset=utf-8');
     return;
   }
 
   if (req.method === 'GET' && pathname.startsWith('/images/')) {
     const file = safeName(path.basename(pathname.slice('/images/'.length)));
-    await sendFile(res, path.join(imagesDir, file), mimeByExt(file));
+    const target = path.join(imagesDir, file);
+    if (/^\d+\.(?:jpe?g|png)$/i.test(file)) {
+      try {
+        const stat = await fsp.stat(target);
+        if (stat.size >= COVER_LAZY_OPTIMIZE_MIN_BYTES) await optimizeCachedCoverFile(target);
+      } catch {}
+    }
+    await sendFile(res, target, mimeByExt(file));
     return;
   }
 
@@ -947,6 +1147,11 @@ if (!gotLock) {
     registerIpc();
     await startLocalServer();
     createMainWindow();
+    setTimeout(() => {
+      optimizeExistingOversizedCovers().catch(error => {
+        console.warn('[cover-cache] background optimization failed:', error?.message || error);
+      });
+    }, 1200);
   });
 
   app.on('activate', () => {

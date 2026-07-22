@@ -332,11 +332,12 @@
     @media (max-width: 680px){.episode-grid-v9{grid-template-columns:repeat(12,minmax(6px,1fr));gap:4px}.ep-cell-v9{height:8px}.detail-hero-v8{padding:18px!important}.score-empty-v9{font-size:24px!important}}
 
 
-    /* v0.12 user requested fixes: no seam, hover panel flush, shorter per-episode cells, 16:9 detail */
+    /* v0.12 user requested fixes: no seam, hover panel flush, shorter per-episode cells, responsive detail */
     :root{
-      --v12-detail-w: min(1280px, calc(100vw - 36px));
-      --v12-detail-h: min(720px, calc(100vh - 36px));
-    }
+  --v12-detail-gap:clamp(96px,15vh,192px);
+  --v12-detail-w:min(1760px,calc(100vw - var(--v12-detail-gap)));
+  --v12-detail-h:min(1040px,calc(100vh - var(--v12-detail-gap)));
+}
 
     /* 卡片：只覆盖，不撑开；遮罩层向下重叠 1px，消除海报与文字遮罩之间的细缝 */
     .card{aspect-ratio:var(--v8-card-ratio)!important;}
@@ -379,19 +380,13 @@
     }
     .mini-tags span{height:22px!important;line-height:21px!important;}
 
-    /* 详情页：外框接近 16:9，内部滚动但隐藏滚动条 */
+    /* 详情页：宽高分别跟随当前应用窗口，不再锁定 16:9。 */
     .drawer{
       width:var(--v12-detail-w)!important;
-      height:auto!important;
-      aspect-ratio:16/9!important;
+      height:var(--v12-detail-h)!important;
+      aspect-ratio:auto!important;
       max-height:var(--v12-detail-h)!important;
-      max-width:calc(100vw - 36px)!important;
-    }
-    @media (min-aspect-ratio: 16/9){
-      .drawer{height:var(--v12-detail-h)!important;width:calc(var(--v12-detail-h) * 16 / 9)!important;}
-    }
-    @media (max-aspect-ratio: 16/9){
-      .drawer{width:var(--v12-detail-w)!important;height:calc(var(--v12-detail-w) * 9 / 16)!important;}
+      max-width:var(--v12-detail-w)!important;
     }
     .detail-v8{overflow:auto!important;scrollbar-width:none!important;}
     .detail-v8::-webkit-scrollbar{display:none!important;width:0!important;height:0!important;}
@@ -413,7 +408,6 @@
     }
     .episode-grid-v9.too-many .ep-cell-v9{height:7px!important;width:62%!important;}
     @media (max-width: 980px){
-      .drawer{width:calc(100vw - 16px)!important;height:auto!important;max-height:calc(100vh - 16px)!important;aspect-ratio:auto!important;}
       .episode-grid-v9{grid-template-columns:repeat(var(--ep-cols-mobile, 18), minmax(7px,1fr))!important;}
     }
     @media (max-width: 680px){
@@ -1786,6 +1780,151 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
     [data-theme="light"] .tag-search-input{background:rgba(255,255,255,.66);}
     [data-motion="off"] .tag-search-toggle,[data-motion="off"] .tag-search-inline{transition:none!important;}
 
+    /* Main search keeps a single custom clear control, matching tag search. */
+    .main-search input{padding-right:46px!important;}
+    .main-search input::-webkit-search-cancel-button,.main-search input::-webkit-search-decoration{-webkit-appearance:none;appearance:none;display:none;}
+    .main-search input::-ms-clear{display:none;}
+    .main-search-clear{
+      position:absolute;
+      right:8px;
+      top:50%;
+      width:30px;
+      height:30px;
+      padding:0;
+      border:0;
+      border-radius:50%;
+      background:transparent;
+      color:var(--muted);
+      opacity:0;
+      pointer-events:none;
+      transform:translateY(-50%) scale(.72);
+      transition:opacity .14s ease,transform .2s cubic-bezier(.16,1,.3,1),background .16s ease,color .16s ease;
+    }
+    .main-search-clear.is-visible{opacity:1;pointer-events:auto;transform:translateY(-50%) scale(1);}
+    .main-search-clear:hover{color:var(--text);background:color-mix(in srgb,var(--a) 14%,rgba(255,255,255,.07));}
+    .main-search-clear::before,.main-search-clear::after{
+      content:"";
+      position:absolute;
+      left:50%;
+      top:50%;
+      width:10px;
+      height:1.5px;
+      border-radius:999px;
+      background:currentColor;
+      transform:translate(-50%,-50%) rotate(45deg);
+    }
+    .main-search-clear::after{transform:translate(-50%,-50%) rotate(-45deg);}
+    [data-motion="off"] .main-search-clear{transition:none!important;}
+
+    /* Compact animated sun/moon theme switch. */
+    #themeBtn.theme-morph-btn{
+      position:relative;
+      width:46px;
+      min-width:46px;
+      height:46px;
+      min-height:46px;
+      padding:0;
+      flex:none;
+      overflow:hidden;
+      isolation:isolate;
+      color:var(--soft);
+    }
+    #themeBtn.theme-morph-btn::before{
+      content:"";
+      position:absolute;
+      inset:6px;
+      z-index:-1;
+      border-radius:50%;
+      background:radial-gradient(circle,color-mix(in srgb,var(--a) 28%,transparent),transparent 68%);
+      opacity:.34;
+      transform:scale(.72);
+      transition:opacity .16s ease,transform .24s cubic-bezier(.16,1,.3,1);
+    }
+    #themeBtn.theme-morph-btn:hover::before{opacity:.7;transform:scale(1.03)}
+    .theme-morph-icon{
+      position:relative;
+      display:block;
+      width:26px;
+      height:26px;
+      transform:translateZ(0);
+      view-transition-name:theme-morph-icon;
+    }
+    .theme-sun,.theme-moon,.theme-orbit{position:absolute;left:50%;top:50%;pointer-events:none}
+    .theme-sun{
+      width:24px;
+      height:24px;
+      color:color-mix(in srgb,var(--a) 84%,var(--text));
+      opacity:0;
+      transform:translate(-50%,-50%) rotate(-90deg) scale(.25);
+      transition:opacity .12s ease,transform .26s cubic-bezier(.16,1,.3,1);
+    }
+    .theme-sun-core{
+      position:absolute;
+      left:50%;
+      top:50%;
+      width:9px;
+      height:9px;
+      border-radius:50%;
+      background:currentColor;
+      box-shadow:0 0 7px color-mix(in srgb,currentColor 42%,transparent);
+      transform:translate(-50%,-50%);
+    }
+    .theme-sun-rays{
+      position:absolute;
+      inset:0;
+      border-radius:50%;
+      background:repeating-conic-gradient(from 0deg,currentColor 0deg 6deg,transparent 6deg 45deg);
+      -webkit-mask:radial-gradient(circle,transparent 0 7px,#000 7.5px 10px,transparent 10.5px);
+      mask:radial-gradient(circle,transparent 0 7px,#000 7.5px 10px,transparent 10.5px);
+    }
+    .theme-moon{
+      width:19px;
+      height:19px;
+      border-radius:50%;
+      color:color-mix(in srgb,var(--a) 84%,var(--text));
+      background:currentColor;
+      filter:drop-shadow(0 0 5px color-mix(in srgb,currentColor 34%,transparent));
+      -webkit-mask:radial-gradient(circle at 68% 31%,transparent 0 40%,#000 43%);
+      mask:radial-gradient(circle at 68% 31%,transparent 0 40%,#000 43%);
+      opacity:0;
+      transform:translate(-50%,-50%) rotate(85deg) scale(.25);
+      transition:opacity .12s ease,transform .26s cubic-bezier(.16,1,.3,1);
+    }
+    .theme-orbit{
+      width:28px;
+      height:28px;
+      border:1px solid color-mix(in srgb,var(--a) 40%,transparent);
+      border-radius:50%;
+      opacity:0;
+      transform:translate(-50%,-50%) scale(.35) rotate(0deg);
+    }
+    .theme-orbit::after{content:none}
+    #themeBtn.theme-is-dark .theme-sun{opacity:1;transform:translate(-50%,-50%) rotate(0deg) scale(1)}
+    #themeBtn.theme-is-dark .theme-moon{opacity:0;transform:translate(-50%,-50%) rotate(85deg) scale(.25)}
+    #themeBtn.theme-is-light .theme-sun{opacity:0;transform:translate(-50%,-50%) rotate(-85deg) scale(.25)}
+    #themeBtn.theme-is-light .theme-moon{opacity:1;transform:translate(-50%,-50%) rotate(0deg) scale(1)}
+    #themeBtn.theme-morphing .theme-morph-icon{animation:themeIconMorph .38s cubic-bezier(.16,1,.3,1) both}
+    #themeBtn.theme-morphing .theme-orbit{animation:themeOrbitBurst .38s cubic-bezier(.16,1,.3,1) both}
+    #themeBtn.theme-morphing::before{animation:themeGlowPulse .38s ease both}
+    #themeBtn.theme-morphing.theme-is-dark .theme-sun{animation:themeSunArrive .36s cubic-bezier(.16,1,.3,1) both}
+    #themeBtn.theme-morphing.theme-is-dark .theme-moon{animation:themeMoonLeave .1s ease-out both}
+    #themeBtn.theme-morphing.theme-is-light .theme-moon{animation:themeMoonArrive .36s cubic-bezier(.16,1,.3,1) both}
+    #themeBtn.theme-morphing.theme-is-light .theme-sun{animation:themeSunLeave .1s ease-out both}
+    @keyframes themeIconMorph{0%{transform:rotate(0deg) scale(1)}42%{transform:rotate(104deg) scale(.72)}76%{transform:rotate(286deg) scale(1.08)}100%{transform:rotate(360deg) scale(1)}}
+    @keyframes themeOrbitBurst{0%{opacity:0;transform:translate(-50%,-50%) scale(.5) rotate(0deg)}26%{opacity:.58}100%{opacity:0;transform:translate(-50%,-50%) scale(1.25) rotate(180deg)}}
+    @keyframes themeGlowPulse{0%,100%{opacity:.34;transform:scale(.72)}48%{opacity:.72;transform:scale(1.08)}}
+    @keyframes themeSunArrive{0%,26%{opacity:0;transform:translate(-50%,-50%) rotate(-72deg) scale(.5)}72%{opacity:1;transform:translate(-50%,-50%) rotate(6deg) scale(1.08)}100%{opacity:1;transform:translate(-50%,-50%) rotate(0deg) scale(1)}}
+    @keyframes themeSunLeave{0%{opacity:1;transform:translate(-50%,-50%) rotate(0deg) scale(1)}100%{opacity:0;transform:translate(-50%,-50%) rotate(48deg) scale(.58)}}
+    @keyframes themeMoonArrive{0%,26%{opacity:0;transform:translate(-50%,-50%) rotate(70deg) scale(.5)}72%{opacity:1;transform:translate(-50%,-50%) rotate(-5deg) scale(1.07)}100%{opacity:1;transform:translate(-50%,-50%) rotate(0deg) scale(1)}}
+    @keyframes themeMoonLeave{0%{opacity:1;transform:translate(-50%,-50%) rotate(0deg) scale(1)}100%{opacity:0;transform:translate(-50%,-50%) rotate(-48deg) scale(.58)}}
+    html.theme-icon-vt::view-transition-group(theme-morph-icon){z-index:2147483647;animation-duration:.56s;animation-timing-function:cubic-bezier(.16,1,.3,1)}
+    html.theme-icon-vt::view-transition-old(theme-morph-icon){transform-origin:center;animation:themeIconSnapshotLeave .18s cubic-bezier(.55,0,1,.45) both}
+    html.theme-icon-vt::view-transition-new(theme-morph-icon){transform-origin:center;animation:themeIconSnapshotArrive .5s cubic-bezier(.16,1,.3,1) both}
+    @keyframes themeIconSnapshotLeave{0%{opacity:1;transform:rotate(0deg) scale(1)}68%{opacity:.72;transform:rotate(38deg) scale(.72)}100%{opacity:0;transform:rotate(82deg) scale(.28)}}
+    @keyframes themeIconSnapshotArrive{0%,36%{opacity:0;transform:rotate(-112deg) scale(.24)}68%{opacity:1;transform:rotate(9deg) scale(1.12)}86%{transform:rotate(-3deg) scale(.98)}100%{opacity:1;transform:rotate(0deg) scale(1)}}
+    [data-motion="off"] #themeBtn *,[data-motion="off"] #themeBtn::before{animation:none!important;transition:none!important}
+    @media (prefers-reduced-motion:reduce){#themeBtn *,#themeBtn::before{animation:none!important;transition:none!important}.theme-morph-icon{view-transition-name:none}}
+
 
 
     /* Electron exact-effect performance hints: keep the browser visual transition unchanged. */
@@ -2615,27 +2754,27 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
           <div class="grow"></div>
           <button class="btn primary" id="syncBtn" title="只扫描最近自定义月份内更新过的收藏；不会触发安全箱删除判断，适合日常同步。">同步最近</button>
           <button class="btn warn" id="fullSyncBtn" title="完整分页核对全部收藏；只有这个模式会做远端缺失检查并把疑似消失条目放入安全箱。">完整同步</button>
-          <button class="btn warn small hidden" id="resumeSyncBtn" type="button">任务进行中</button>
+          <button class="btn warn hidden" id="resumeSyncBtn" type="button">任务进行中</button>
           <button class="btn" id="exportBtn">导出备份</button>
           <button class="btn" id="settingsBtn">设置</button>
         </div>
         <div class="row" style="margin-top:14px">
-          <div class="search"><input id="searchInput" placeholder="搜索标题、吐槽、我的标签、公共标签、年份……" /></div>
+          <div class="search main-search"><input id="searchInput" type="search" autocomplete="off" placeholder="搜索标题、吐槽、我的标签、公共标签、年份……" /><button class="main-search-clear" id="searchClearBtn" type="button" title="清空搜索" aria-label="清空搜索" aria-hidden="true" tabindex="-1"></button></div>
           <div class="selectish" id="typeDropdown">
-            <button class="btn select-trigger" id="typeDropdownBtn" type="button"><span id="typeDropdownLabel">全部分类</span><span class="chev" aria-hidden="true"></span></button>
+            <button class="btn select-trigger" id="typeDropdownBtn" type="button"><span id="typeDropdownLabel">全部分类</span><span class="chev" aria-hidden="true">&#8964;</span></button>
             <div class="select-menu" role="menu">
               <button data-value="0" class="active">全部分类</button><button data-value="2">动画</button><button data-value="1">书籍</button><button data-value="4">游戏</button><button data-value="3">音乐</button><button data-value="6">三次元</button>
             </div>
           </div>
           <select class="hidden" id="typeFilter" aria-label="条目分类"><option value="0">全部分类</option><option value="2">动画</option><option value="1">书籍</option><option value="4">游戏</option><option value="3">音乐</option><option value="6">三次元</option></select>
           <div class="selectish" id="sortDropdown">
-            <button class="btn select-trigger" id="sortDropdownBtn" type="button"><span id="sortDropdownLabel">按更新时间新到旧</span><span class="chev" aria-hidden="true"></span></button>
+            <button class="btn select-trigger" id="sortDropdownBtn" type="button"><span id="sortDropdownLabel">按更新时间新到旧</span><span class="chev" aria-hidden="true">&#8964;</span></button>
             <div class="select-menu" role="menu">
               <button data-value="updated_desc" class="active">按更新时间新到旧</button><button data-value="updated_asc">按更新时间旧到新</button><button data-value="rate_desc">按我的评分高到低</button><button data-value="name_asc">按标题 A-Z</button><button data-value="first_seen_desc">按首次备份新到旧</button>
             </div>
           </div>
           <select class="hidden" id="sortSelect" aria-label="排序"><option value="updated_desc">按更新时间新到旧</option><option value="updated_asc">按更新时间旧到新</option><option value="rate_desc">按我的评分高到低</option><option value="name_asc">按标题 A-Z</option><option value="first_seen_desc">按首次备份新到旧</option></select>
-          <button class="btn" id="themeBtn">切换明暗</button>
+          <button class="btn theme-morph-btn theme-is-dark" id="themeBtn" type="button" title="切换到浅色主题" aria-label="切换到浅色主题"><span class="theme-morph-icon" aria-hidden="true"><span class="theme-sun"><i class="theme-sun-core"></i><i class="theme-sun-rays"></i></span><span class="theme-moon"></span><span class="theme-orbit"></span></span></button>
         </div>
       </div>
       <div class="filters">
@@ -2763,7 +2902,7 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
       <div class="export-help-list">
         <div><b>完整 ZIP</b>：推荐日常备份，包含收藏数据、历史、表格、文档、离线 HTML 和封面目录。</div>
         <div><b>JSON</b>：用于恢复资料库；<b>CSV / XLSX</b>：用于表格软件；<b>DOCX</b>：用于阅读归档。</div>
-        <div><b>单文件 HTML</b> 适合少量条目分享预览；条目很多时建议导出完整 ZIP。</div>
+        <div><b>单文件 HTML</b> 不内嵌封面，离线时显示占位，导出更快；需要封面请使用完整 ZIP。</div>
       </div>
       <div class="row">
         <button class="btn primary" id="exportZipBtn">导出完整 ZIP</button>
@@ -2801,7 +2940,7 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
   function statusMapForNav(){ return filters.type ? (STATUS_BY_TYPE[Number(filters.type)] || STATUS) : STATUS; }
   const SUBJECT_LABEL = {1:'书籍',2:'动画',3:'音乐',4:'游戏',6:'三次元'};
   const BGM_TYPE_PATH = {1:'book',2:'anime',3:'music',4:'game',6:'real'};
-  const DEFAULT_STATE = {schema:17, settings:{username:'', token:'', rememberToken:false, theme:'system', themeMode:'system', recentMonths:3, fontFamily:'system', customFont:'', cardSize:'standard', pageSize:120, commentLines:0, motion:'full', accentColor:'sakura', borderWidth:1, apiBase:'', imageProxyBase:'', siteBase:'', customApiPrivate:false, profileIntro:''}, collections:{}, history:[], runs:[], profile:null};
+  const DEFAULT_STATE = {schema:17, settings:{username:'', token:'', rememberToken:false, theme:'system', themeMode:'system', recentMonths:3, fontFamily:'system', customFont:'', cardSize:'standard', pageSize:120, commentLines:0, motion:'full', accentColor:'sakura', borderWidth:1, apiBase:'', imageProxyBase:'', siteBase:'', customApiPrivate:false, profileIntro:''}, collections:{}, history:[], runs:[], profile:null, storageMeta:null};
   let state = structuredClone(DEFAULT_STATE);
   let filters = {status:0, tag:'全部', type:0, q:'', sort:'updated_desc'};
   let tagSearchOpen = false;
@@ -2825,13 +2964,80 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
   let runtimeLogQueue = [];
   let runtimeLogTimer = 0;
   let runtimeLogSending = false;
+  let historyDeferred = false;
+  let historyLoaded = true;
+  let historyLoadPromise = null;
+  let historyLoadError = '';
+  let vaultIntegrityIssues = [];
+  let drawerOpenGeneration = 0;
+  let drawerNetworkController = null;
+  let drawerNetworkSubjectId = '';
 
   const $ = (id) => document.getElementById(id);
   const nowISO = () => new Date().toISOString();
   const sleep = (ms) => new Promise(r => setTimeout(r, ms));
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
   const safeName = (s) => String(s || 'bangumi_vault').replace(/[\\/:*?"<>|]+/g,'_').slice(0,80);
+  function beginDrawerNetwork(subjectId){
+    const key = String(subjectId || '');
+    if(!key) return null;
+    if(drawerNetworkSubjectId !== key || !drawerNetworkController || drawerNetworkController.signal.aborted){
+      drawerNetworkController?.abort();
+      drawerNetworkSubjectId = key;
+      drawerNetworkController = new AbortController();
+    }
+    return drawerNetworkController;
+  }
+  function drawerNetworkSignalFor(subjectId){
+    return String(subjectId || '') === drawerNetworkSubjectId ? drawerNetworkController?.signal || null : null;
+  }
+  function cancelDrawerNetwork(subjectId=''){
+    if(subjectId && String(subjectId) !== drawerNetworkSubjectId) return;
+    drawerNetworkController?.abort();
+    drawerNetworkController = null;
+    drawerNetworkSubjectId = '';
+  }
   function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._tm); t._tm=setTimeout(()=>t.classList.remove('show'),3200); }
+  function askNonBlockingConfirmation(message, options={}){
+    const existing = $('actionConfirm');
+    if(existing?.__dismiss) existing.__dismiss(false);
+    else existing?.remove();
+    const title = String(options.title || '请确认');
+    const confirmText = String(options.confirmText || '继续');
+    const cancelText = String(options.cancelText || '取消');
+    return new Promise(resolve=>{
+      const panel = document.createElement('section');
+      panel.id = 'actionConfirm';
+      panel.className = 'action-confirm-popover';
+      panel.setAttribute('role', 'dialog');
+      panel.setAttribute('aria-modal', 'false');
+      panel.setAttribute('aria-label', title);
+      panel.innerHTML = `<div class="action-confirm-kicker">${esc(title)}</div><div class="action-confirm-message">${esc(String(message || '')).replace(/\n/g,'<br>')}</div><div class="action-confirm-actions"><button type="button" class="btn small" data-action-confirm-cancel>${esc(cancelText)}</button><button type="button" class="btn small ${options.danger ? 'bad' : 'primary'}" data-action-confirm-ok>${esc(confirmText)}</button></div>`;
+      let settled = false;
+      const close = (value)=>{
+        if(settled) return;
+        settled = true;
+        document.removeEventListener('keydown', onKey, true);
+        panel.remove();
+        resolve(!!value);
+      };
+      const onKey = (event)=>{
+        if(event.key === 'Escape'){
+          event.preventDefault();
+          close(false);
+        }else if(event.key === 'Enter' && panel.contains(document.activeElement)){
+          event.preventDefault();
+          close(true);
+        }
+      };
+      panel.__dismiss = close;
+      panel.querySelector('[data-action-confirm-cancel]').onclick = ()=>close(false);
+      panel.querySelector('[data-action-confirm-ok]').onclick = ()=>close(true);
+      document.addEventListener('keydown', onKey, true);
+      document.body.appendChild(panel);
+      requestAnimationFrame(()=>panel.classList.add('show'));
+    });
+  }
   function scheduleRuntimeLog(channel, message, level='info'){
     if(!message || runtimeLogQueue.length > 480) return;
     runtimeLogQueue.push({time:new Date().toISOString(), channel, level, message:String(message)});
@@ -2920,10 +3126,69 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
   // Compatibility alias: profile rebuild code uses proxiedImage(), while the base app uses rewriteImageUrl().
   function proxiedImage(url){ return rewriteImageUrl(url); }
   function resetRenderLimit(){ renderLimit = pageSize(); }
+  function syncMainSearchClear(){
+    const input = $('searchInput');
+    const clear = $('searchClearBtn');
+    if(!clear) return;
+    const visible = !!input?.value;
+    clear.classList.toggle('is-visible', visible);
+    clear.setAttribute('aria-hidden', visible ? 'false' : 'true');
+    clear.tabIndex = visible ? 0 : -1;
+  }
+  function syncMainSearchControl(){
+    const input = $('searchInput');
+    if(input){
+      const value = String(filters.q || '');
+      if(input.value !== value) input.value = value;
+    }
+    syncMainSearchClear();
+  }
   function effectiveTheme(){
     const mode = state.settings.themeMode || state.settings.theme || 'dark';
     if(mode === 'system') return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
     return mode === 'light' ? 'light' : 'dark';
+  }
+  function syncThemeButton(theme=effectiveTheme()){
+    const btn = $('themeBtn');
+    if(!btn) return;
+    if(!btn.querySelector('.theme-morph-icon')){
+      btn.innerHTML = '<span class="theme-morph-icon" aria-hidden="true"><span class="theme-sun"><i class="theme-sun-core"></i><i class="theme-sun-rays"></i></span><span class="theme-moon"></span><span class="theme-orbit"></span></span>';
+    }
+    const isDark = theme === 'dark';
+    btn.classList.toggle('theme-is-dark', isDark);
+    btn.classList.toggle('theme-is-light', !isDark);
+    const label = isDark ? '切换到浅色主题' : '切换到深色主题';
+    btn.title = label;
+    btn.setAttribute('aria-label', label);
+  }
+  function animateThemeButton(nextTheme){
+    const btn = $('themeBtn');
+    if(!btn) return;
+    if(btn._themeMorphTimer) clearTimeout(btn._themeMorphTimer);
+    const root = document.documentElement;
+    btn.classList.remove('theme-morphing');
+    const reduced = state.settings.motion === 'off' || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    if(reduced){ root.classList.remove('theme-icon-vt'); syncThemeButton(nextTheme); return; }
+    if(document.startViewTransition){
+      const version = (Number(window.__bvThemeIconMorphVersion) || 0) + 1;
+      window.__bvThemeIconMorphVersion = version;
+      btn._themeMorphVersion = version;
+      root.classList.add('theme-icon-vt');
+      btn._themeMorphTimer = window.setTimeout(()=>{
+        if(Number(window.__bvThemeIconMorphVersion) === version){
+          root.classList.remove('theme-icon-vt');
+          btn._themeMorphTimer = 0;
+        }
+      }, 2000);
+      return;
+    }
+    syncThemeButton(nextTheme);
+    void btn.offsetWidth;
+    btn.classList.add('theme-morphing');
+    btn._themeMorphTimer = window.setTimeout(()=>{
+      btn.classList.remove('theme-morphing');
+      btn._themeMorphTimer = 0;
+    }, 410);
   }
   const ACCENT_PRESETS = {
     sakura: ['#ff7eb6','#f472b6','#fb7185'],
@@ -2963,7 +3228,7 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
       setProp('--comment-lines', String(clampNum(state.settings.commentLines, 0, 6, 0)));
       setProp('--ui-border-width', clampNum(state.settings.borderWidth, 0, 4, 1) + 'px');
       setData('borderZero', clampNum(state.settings.borderWidth, 0, 4, 1) === 0 ? 'true' : 'false');
-      const btn = $('themeBtn'); if(btn){ const label = theme === 'dark' ? '浅色' : '深色'; if(btn.innerHTML !== label) btn.innerHTML = label; }
+      syncThemeButton(theme);
     };
     if(!animate || state.settings.motion === 'off' || !document.startViewTransition){ update(); return Promise.resolve(); }
     const root = document.documentElement;
@@ -3045,6 +3310,10 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
     return localApiKnown;
   }
   async function localGetJSON(path){ const r = await fetch(path, {cache:'no-store'}); if(!r.ok || r.status===204) return null; const t=await r.text(); return t ? JSON.parse(t) : null; }
+  async function localGetJSONSafe(path){
+    try{ return {ok:true, value:await localGetJSON(path), error:''}; }
+    catch(error){ return {ok:false, value:null, error:String(error?.message || error || '读取失败')}; }
+  }
   async function localPostJSON(path, obj){ const r = await fetch(path, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(obj)}); if(!r.ok) throw new Error(await r.text().catch(()=>r.statusText)); return await r.json().catch(()=>({ok:true})); }
   async function localSaveBlob(name, blob){
     if(!(await localApiAvailable())) return false;
@@ -3064,7 +3333,26 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
       } else {
         let loaded = null;
         if(await localApiAvailable()){
-          const [savedState, savedCollections, savedHistory, savedDetails, savedTags] = await Promise.all([localGetJSON('/api/state'), localGetJSON('/api/collections'), localGetJSON('/api/history'), localGetJSON('/api/details'), localGetJSON('/api/tags')]);
+          // History is the largest local file. It is intentionally deferred until
+          // a drawer/export needs it, so a large vault reaches the catalogue fast.
+          const [stateResult, collectionsResult, detailsResult, tagsResult] = await Promise.all([
+            localGetJSONSafe('/api/state'), localGetJSONSafe('/api/collections'), localGetJSONSafe('/api/details'), localGetJSONSafe('/api/tags')
+          ]);
+          const savedState = stateResult.value;
+          const savedCollections = collectionsResult.value;
+          const savedDetails = detailsResult.value;
+          const savedTags = tagsResult.value;
+          vaultIntegrityIssues = [
+            !stateResult.ok ? `收藏数据读取失败：${stateResult.error}` : '',
+            !collectionsResult.ok ? `收藏条目读取失败：${collectionsResult.error}` : '',
+            !detailsResult.ok ? `条目资料读取失败：${detailsResult.error}` : '',
+            !tagsResult.ok ? `标签数据读取失败：${tagsResult.error}` : ''
+          ].filter(Boolean);
+          storageMetaIssues(savedState?.storageMeta, {
+            collections:savedCollections?.collections,
+            details:savedDetails?.details,
+            tags:savedTags?.tags
+          }).forEach(noteVaultIntegrityIssue);
           loaded = savedState;
           if(loaded && savedCollections?.collections){
             const collections = {...savedCollections.collections};
@@ -3074,8 +3362,18 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
             needsCollectionDataMigration = !savedDetails?.details || !savedTags?.tags;
           }
           else if(loaded?.collections && Object.keys(loaded.collections).length) needsCollectionsMigration = true;
-          if(loaded && Array.isArray(savedHistory?.history)) loaded = {...loaded, history:savedHistory.history};
-          else if(Array.isArray(loaded?.history) && loaded.history.length) needsHistoryMigration = true;
+          const legacyHistory = Array.isArray(loaded?.history) ? loaded.history : null;
+          if(legacyHistory?.length){
+            // A pre-split vault still keeps history in 收藏数据.json. Preserve it
+            // in memory for this run, then let the normal save migrate it safely.
+            historyDeferred = false;
+            historyLoaded = true;
+            needsHistoryMigration = true;
+          }else{
+            historyDeferred = !!loaded;
+            historyLoaded = !loaded;
+            if(historyDeferred) loaded = {...loaded, history:[]};
+          }
         }
         if(loaded) state = mergeState(loaded);
         else {
@@ -3092,10 +3390,10 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
     if(!state.settings.username && state.profile?.username) state.settings.username = state.profile.username;
     runtimeToken = state.settings.rememberToken ? (state.settings.token || '') : '';
     applyAppearance(false); resetRenderLimit();
-    if(needsCollectionsMigration || needsHistoryMigration || needsCollectionDataMigration) await saveState();
+    if(needsCollectionsMigration || needsHistoryMigration || needsCollectionDataMigration) await saveState({history:!historyDeferred});
   }
   function mergeState(loaded){
-    const settings = {...DEFAULT_STATE.settings, ...(loaded.settings||{})}; if(!settings.themeMode) settings.themeMode = settings.theme || 'system'; if((loaded.schema||0) < 11 && Number(settings.commentLines) === 3) settings.commentLines = 0; return {schema:17, settings, collections:loaded.collections||{}, history:compactHistory(loaded.history||[]), runs:loaded.runs||[], profile:loaded.profile || loaded.userProfile || null};
+    const settings = {...DEFAULT_STATE.settings, ...(loaded.settings||{})}; if(!settings.themeMode) settings.themeMode = settings.theme || 'system'; if((loaded.schema||0) < 11 && Number(settings.commentLines) === 3) settings.commentLines = 0; return {schema:17, settings, collections:loaded.collections||{}, history:compactHistory(loaded.history||[]), runs:loaded.runs||[], profile:loaded.profile || loaded.userProfile || null, storageMeta:loaded.storageMeta || null};
   }
   const HISTORY_SNAPSHOT_FIELDS = ['subject_id','subject_type','collection_type','title','name','name_cn','date','bgm_score','rank','rate','ep_status','vol_status','private','comment','tags','myTags','status','missing_count','collection_created_at','bangumi_updated_at','mark_changed_at','first_seen_at','last_seen_at','last_synced_at'];
   function compactHistorySnapshot(snapshot){
@@ -3110,10 +3408,76 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
     return {subject_id:entry.subject_id || entry.new?.subject_id || entry.old?.subject_id || '', change_type:entry.change_type || '', old:compactHistorySnapshot(entry.old), new:compactHistorySnapshot(entry.new), changes, created_at:entry.created_at || '', sync_run_id:entry.sync_run_id || '', note:entry.note || ''};
   }
   function compactHistory(list){ return Array.isArray(list) ? list.map(compactHistoryEntry).filter(entry=>entry && !Array.isArray(entry)) : []; }
+  function historyEntryIdentity(entry){
+    const value = compactHistoryEntry(entry) || {};
+    return [value.subject_id, value.change_type, value.created_at, value.sync_run_id, value.note, JSON.stringify(value.changes || [])].join('\u001f');
+  }
+  function mergeHistoryLists(stored, pending){
+    const out = [], seen = new Set();
+    for(const entry of [...compactHistory(stored), ...compactHistory(pending)]){
+      const key = historyEntryIdentity(entry);
+      if(seen.has(key)) continue;
+      seen.add(key); out.push(entry);
+    }
+    return out;
+  }
+  function noteVaultIntegrityIssue(message){
+    const text = String(message || '').trim();
+    if(!text || vaultIntegrityIssues.includes(text)) return;
+    vaultIntegrityIssues.push(text);
+    scheduleRuntimeLog('storage', text, 'warn');
+    const el = $('portableStatus');
+    if(el) el.textContent = `存储检查：发现 ${vaultIntegrityIssues.length} 项不一致，建议从导出备份恢复`;
+  }
+  async function ensureHistoryLoaded(){
+    if(historyLoaded) return state.history;
+    if(historyLoadPromise) return historyLoadPromise;
+    const pending = Array.isArray(state.history) ? state.history.slice() : [];
+    historyLoadPromise = (async()=>{
+      if(!(await localApiAvailable())){
+        state.history = mergeHistoryLists([], pending);
+        historyLoaded = true; historyDeferred = false;
+        return state.history;
+      }
+      const result = await localGetJSONSafe('/api/history');
+      if(!result.ok){
+        historyLoadError = result.error || '变更历史读取失败';
+        noteVaultIntegrityIssue(`变更历史读取失败：${historyLoadError}`);
+        throw new Error(historyLoadError);
+      }
+      const payload = result.value;
+      if(payload && !Array.isArray(payload.history)){
+        historyLoadError = '变更历史文件格式不正确';
+        noteVaultIntegrityIssue(historyLoadError);
+        throw new Error(historyLoadError);
+      }
+      const stored = Array.isArray(payload?.history) ? payload.history : [];
+      const expected = Number(state.storageMeta?.history_count || 0);
+      if(expected > 0 && stored.length !== expected) noteVaultIntegrityIssue(`变更历史条目数不一致：清单为 ${expected}，实际为 ${stored.length}`);
+      state.history = mergeHistoryLists(stored, pending);
+      historyLoaded = true;
+      historyDeferred = false;
+      historyLoadError = '';
+      drawerHistoryIndex = null;
+      drawerHistoryIndexSource = null;
+      drawerHistoryIndexLength = -1;
+      window.dispatchEvent(new CustomEvent('bv-history-loaded'));
+      refreshDrawerHistoryPanel();
+      return state.history;
+    })().finally(()=>{ historyLoadPromise = null; });
+    return historyLoadPromise;
+  }
+  async function appendHistory(entry){
+    if(!historyLoaded) await ensureHistoryLoaded();
+    state.history.push(compactHistoryEntry(entry));
+    drawerHistoryIndex = null;
+    drawerHistoryIndexSource = null;
+    drawerHistoryIndexLength = -1;
+  }
   function stateCoreForStorage(){
     const settings = {...state.settings};
     if(!settings.rememberToken) settings.token = '';
-    return {schema:17, settings, runs:state.runs, profile:state.profile};
+    return {schema:17, settings, runs:state.runs, profile:state.profile, storageMeta:state.storageMeta || null};
   }
   const RAW_SUBJECT_FIELDS = ['id','type','name','name_cn','date','eps','volumes','score','rating','rank','summary','short_summary','images','tags','infobox'];
   function compactCollectionForStorage(row){
@@ -3131,7 +3495,7 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
     return out;
   }
   const COLLECTION_TAG_FIELDS = ['tags','myTags','my_tags','publicTags','public_tags','subjectTags','public_tags_source','public_tags_fetched_at'];
-  const COLLECTION_DETAIL_FIELDS = ['summary','short_summary','image','images','infobox','staff','persons','casts','voice_actors','cloud_characters','cloud_voice_fetched_at','subject_detail_fetched_at','subject_detail_missing_at','subject_detail_missing_auth_revision','timeline_episode_times','timeline_episode_match_count','timeline_episode_matched_at','raw'];
+  const COLLECTION_DETAIL_FIELDS = ['summary','short_summary','image','images','infobox','staff','persons','casts','voice_actors','cloud_characters','cloud_voice_fetched_at','subject_detail_fetched_at','subject_detail_missing_at','subject_detail_missing_auth_revision','episode_catalog','episode_catalog_fetched_at','episode_catalog_missing_at','episode_collection_statuses','episode_collection_fetched_at','episode_collection_total','episode_collection_status_schema','timeline_episode_times','timeline_episode_match_count','timeline_episode_matched_at','raw'];
   function collectionStorageParts(){
     const collections = {};
     const details = {};
@@ -3149,6 +3513,68 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
       if(Object.keys(tag).length) tags[id] = tag;
     });
     return {collections, details, tags};
+  }
+  const VAULT_STORAGE_META_SCHEMA = 1;
+  function vaultDigest(values){
+    let hash = 2166136261;
+    for(const value of values || []){
+      const text = String(value ?? '') + '\n';
+      for(let i=0;i<text.length;i++) hash = Math.imul(hash ^ text.charCodeAt(i), 16777619);
+    }
+    return (hash >>> 0).toString(16).padStart(8, '0');
+  }
+  function vaultChunkMeta(rows){
+    const keys = Object.keys(rows || {}).sort();
+    return {count:keys.length, digest:vaultDigest(keys)};
+  }
+  function vaultHistoryMeta(history){
+    const list = Array.isArray(history) ? history : [];
+    return {
+      count:list.length,
+      digest:vaultDigest(list.map(item=>`${item?.subject_id || ''}|${item?.change_type || ''}|${item?.created_at || ''}|${item?.sync_run_id || ''}`))
+    };
+  }
+  function nextStorageMeta(parts=null, includeHistory=false){
+    const previous = state.storageMeta && typeof state.storageMeta === 'object' ? state.storageMeta : {};
+    const meta = {
+      schema:VAULT_STORAGE_META_SCHEMA,
+      revision:Math.max(0, Number(previous.revision) || 0) + (parts || includeHistory ? 1 : 0),
+      committed_at:nowISO(),
+      collections:previous.collections || null,
+      details:previous.details || null,
+      tags:previous.tags || null,
+      history:previous.history || null,
+      history_count:Number(previous.history_count || 0)
+    };
+    if(parts){
+      meta.collections = vaultChunkMeta(parts.collections);
+      meta.details = vaultChunkMeta(parts.details);
+      meta.tags = vaultChunkMeta(parts.tags);
+    }
+    if(includeHistory){
+      meta.history = vaultHistoryMeta(state.history);
+      meta.history_count = meta.history.count;
+    }
+    return meta;
+  }
+  function storageMetaIssues(meta, parts={}){
+    if(!meta || Number(meta.schema) !== VAULT_STORAGE_META_SCHEMA) return [];
+    const checks = [
+      ['收藏条目', meta.collections, parts.collections],
+      ['条目资料', meta.details, parts.details],
+      ['标签数据', meta.tags, parts.tags]
+    ];
+    const issues = [];
+    checks.forEach(([label, expected, rows])=>{
+      if(!expected) return;
+      if(!rows || typeof rows !== 'object'){
+        if(Number(expected.count || 0) > 0) issues.push(`${label}未能读取`);
+        return;
+      }
+      const actual = vaultChunkMeta(rows);
+      if(Number(expected.count) !== actual.count || String(expected.digest || '') !== actual.digest) issues.push(`${label}与上次完整写入清单不一致`);
+    });
+    return issues;
   }
   function fullStateForBrowserStorage(){ return {...stateCoreForStorage(), history:state.history, collections:collectionsForStorage()}; }
   function normalizeTimelineCache(loaded){
@@ -3189,19 +3615,32 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
   }
   async function saveState(options={}){
     if(window.BANGUMI_VAULT_OFFLINE_STATE) return;
-    if(options.history !== false) state.history = compactHistory(state.history);
-    const core = stateCoreForStorage();
+    const writeCollections = options.collections !== false;
+    const writeHistory = options.history !== false;
+    if(writeHistory && !historyLoaded) await ensureHistoryLoaded();
+    if(writeHistory) state.history = compactHistory(state.history);
     if(await localApiAvailable()){
-      await localPostJSON('/api/state', core);
-      if(options.collections !== false){
-        const parts = collectionStorageParts();
-        await Promise.all([
-          localPostJSON('/api/collections', {schema:2, collections:parts.collections}),
-          localPostJSON('/api/details', {schema:1, details:parts.details}),
-          localPostJSON('/api/tags', {schema:1, tags:parts.tags})
-        ]);
+      const parts = writeCollections ? collectionStorageParts() : null;
+      const previousMeta = state.storageMeta;
+      const nextMeta = parts || writeHistory ? nextStorageMeta(parts, writeHistory) : previousMeta;
+      try{
+        // Data chunks are committed first. 收藏数据.json is the final marker,
+        // so a partial write is detectable on the next launch instead of silent.
+        if(parts){
+          await Promise.all([
+            localPostJSON('/api/collections', {schema:2, collections:parts.collections}),
+            localPostJSON('/api/details', {schema:1, details:parts.details}),
+            localPostJSON('/api/tags', {schema:1, tags:parts.tags})
+          ]);
+        }
+        if(writeHistory) await localPostJSON('/api/history', {schema:1, history:state.history});
+        if(parts || writeHistory) state.storageMeta = nextMeta;
+        await localPostJSON('/api/state', stateCoreForStorage());
+      }catch(error){
+        state.storageMeta = previousMeta;
+        noteVaultIntegrityIssue(`本地资料库保存未完成：${String(error?.message || error)}`);
+        throw error;
       }
-      if(options.history !== false) await localPostJSON('/api/history', {schema:1, history:state.history});
       return;
     }
     const out = fullStateForBrowserStorage();
@@ -3333,7 +3772,7 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
       bangumi_updated_at:item.updated_at || item.updatedAt || '', raw
     };
   }
-  const SUBJECT_DETAIL_CACHE_FIELDS = ['summary','short_summary','image','images','infobox','platform'];
+  const SUBJECT_DETAIL_CACHE_FIELDS = ['summary','short_summary','image','images','infobox','platform','episode_catalog'];
   function hasCachedValue(value){
     if(value == null || value === '') return false;
     if(Array.isArray(value)) return value.length > 0;
@@ -3345,7 +3784,7 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
     SUBJECT_DETAIL_CACHE_FIELDS.forEach(field=>{
       if(!hasCachedValue(snapshot[field]) && hasCachedValue(cached[field])) snapshot[field] = structuredClone(cached[field]);
     });
-    ['subject_detail_fetched_at','subject_detail_missing_at','subject_detail_missing_auth_revision','cloud_subject_missing_at','cloud_subject_missing_auth_revision','cloud_rank_fetched_at'].forEach(field=>{
+    ['subject_detail_fetched_at','subject_detail_missing_at','subject_detail_missing_auth_revision','episode_catalog_fetched_at','episode_catalog_missing_at','cloud_subject_missing_at','cloud_subject_missing_auth_revision','cloud_rank_fetched_at'].forEach(field=>{
       if(cached[field] !== undefined && snapshot[field] === undefined) snapshot[field] = cached[field];
     });
     snapshot.content_hash = hashString(stableStringify(comparable(snapshot)));
@@ -3378,6 +3817,115 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
     delete row.cloud_subject_missing_auth_revision;
     row.content_hash = hashString(stableStringify(comparable(row)));
     return row;
+  }
+  function normalizeEpisodeCatalog(payload){
+    const source = Array.isArray(payload) ? payload : (Array.isArray(payload?.data) ? payload.data : []);
+    const seen = new Set();
+    return source.map(entry=>{
+      const id = Number(entry?.id) || 0;
+      const ep = Number(entry?.ep);
+      const sort = Number(entry?.sort);
+      return {
+        id,
+        ep:Number.isFinite(ep) ? ep : 0,
+        sort:Number.isFinite(sort) ? sort : 0,
+        type:Number(entry?.type) || 0,
+        disc:Number(entry?.disc) || 0,
+        airdate:String(entry?.airdate || ''),
+        name:String(entry?.name || ''),
+        name_cn:String(entry?.name_cn || '')
+      };
+    }).filter(entry=>{
+      const key = entry.id || `${entry.type}:${entry.ep}:${entry.sort}`;
+      if(!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    }).sort((a,b)=>a.sort-b.sort || a.type-b.type || a.ep-b.ep || a.id-b.id);
+  }
+  function primaryEpisodeCatalog(row){
+    const catalog = normalizeEpisodeCatalog(row?.episode_catalog || []);
+    return catalog.filter(entry=>entry.type === 0 && entry.ep > 0 && entry.sort > 0)
+      .sort((a,b)=>a.ep-b.ep || a.sort-b.sort || a.id-b.id);
+  }
+  function specialEpisodeCatalog(row){
+    return normalizeEpisodeCatalog(row?.episode_catalog || [])
+      .filter(entry=>!(entry.type === 0 && entry.ep > 0 && entry.sort > 0));
+  }
+  function episodeTypeLabel(entry){
+    const labels = {1:'SP',2:'OP',3:'ED',4:'预告',5:'MAD',6:'其他'};
+    return labels[Number(entry?.type)] || '特别';
+  }
+  function hasEpisodeCatalog(row){
+    return Array.isArray(row?.episode_catalog) && !!String(row?.episode_catalog_fetched_at || '').trim();
+  }
+  async function fetchEpisodeCatalog(row, token, options={}){
+    const id = Number(row?.subject_id) || 0;
+    if(!id) return [];
+    const all = [];
+    let offset = 0;
+    let total = Infinity;
+    while(offset < total){
+      const payload = await apiFetch(`/v0/episodes?subject_id=${encodeURIComponent(id)}&limit=100&offset=${offset}`, token || '', {signal:options.signal || undefined});
+      const page = normalizeEpisodeCatalog(payload);
+      const declared = Number(payload?.total);
+      if(Number.isFinite(declared) && declared >= 0) total = declared;
+      all.push(...page);
+      if(!page.length || page.length < 100) break;
+      offset += page.length;
+    }
+    row.episode_catalog = normalizeEpisodeCatalog(all);
+    row.episode_catalog_fetched_at = nowISO();
+    delete row.episode_catalog_missing_at;
+    return row.episode_catalog;
+  }
+  const EPISODE_COLLECTION_STATUS_SCHEMA = 2;
+  function episodeCollectionItems(payload){
+    return Array.isArray(payload) ? payload : (Array.isArray(payload?.data) ? payload.data : []);
+  }
+  function normalizeEpisodeCollectionStatuses(payload){
+    const items = episodeCollectionItems(payload);
+    const statuses = {};
+    items.forEach(item=>{
+      const episodeId = Number(item?.episode?.id ?? item?.episode_id ?? item?.id) || 0;
+      const type = Number(item?.type);
+      if(!episodeId || !Number.isFinite(type) || type < 1 || type > 3) return;
+      statuses[String(episodeId)] = {type, updated_at:Number(item?.updated_at) || 0};
+    });
+    return statuses;
+  }
+  async function fetchEpisodeCollectionStatuses(row, token, options={}){
+    const subjectId = Number(row?.subject_id) || 0;
+    if(!subjectId || !String(token || '').trim()) return null;
+    const all = [];
+    const limit = 1000;
+    let offset = 0;
+    let total = Infinity;
+    while(offset < total){
+      const payload = await apiFetch(`/v0/users/-/collections/${encodeURIComponent(subjectId)}/episodes?limit=${limit}&offset=${offset}`, token, {signal:options.signal || undefined});
+      const page = episodeCollectionItems(payload);
+      const declared = Number(payload?.total);
+      if(Number.isFinite(declared) && declared >= 0) total = declared;
+      all.push(...page);
+      if(!page.length || page.length < limit) break;
+      offset += page.length;
+    }
+    row.episode_collection_statuses = normalizeEpisodeCollectionStatuses(all);
+    row.episode_collection_fetched_at = nowISO();
+    row.episode_collection_total = Number.isFinite(total) ? total : all.length;
+    row.episode_collection_status_schema = EPISODE_COLLECTION_STATUS_SCHEMA;
+    return row.episode_collection_statuses;
+  }
+  function episodeCollectionStatusFor(row, episode){
+    const id = Number(episode?.id) || 0;
+    const value = id ? row?.episode_collection_statuses?.[String(id)] : null;
+    const type = Number(value?.type);
+    return Number.isFinite(type) && type >= 1 && type <= 3 ? value : null;
+  }
+  function episodeCollectionState(type){
+    return ({0:'unwatched',1:'wish',2:'watched',3:'abandoned'})[Number(type)] || '';
+  }
+  function episodeCollectionStateLabel(type){
+    return ({0:'未看',1:'想看',2:'已看',3:'抛弃'})[Number(type)] || '';
   }
   function completedEpisodesCount(collection){ return collection?.completed_episodes_count ?? collection?.ep_status ?? ''; }
   function completedVolumesCount(collection){ return collection?.completed_volumes_count ?? collection?.vol_status ?? ''; }
@@ -3723,9 +4271,9 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
     $('filterSummary').textContent = `${statusLabel(filters.type, filters.status)} / ${tagLabelFromKey(filters.tag)} / ${filters.type ? SUBJECT_LABEL[filters.type] : '全部分类'}`;
     if(!arr.length){
       if(filters.status === 99){
-        $('content').innerHTML = `<div class="safety-empty"><div class="safety-panel"><h2>安全箱现在是空的，这是好事。</h2><p>安全箱不是普通分类，它只在“本地以前有，但这次远端完整同步后突然没有出现”的时候才会有内容。</p><div class="safety-steps"><div class="safety-step"><b>1. 正常同步新增条目：</b>你在 Bangumi 网页新增或修改收藏后，点“同步最新变动”，它会写入本地。</div><div class="safety-step"><b>2. 远端疑似吞条目：</b>条目不会被本地删除，而是进入安全箱。</div><div class="safety-step"><b>3. 你手动判断：</b>确认线上删除 / 本地保留 / 等下次同步恢复。</div></div></div></div>`;
+        $('content').innerHTML = `<div class="safety-empty"><div class="safety-panel"><h2>安全箱现在是空的，这是好事。</h2><p>安全箱不是普通分类，它只在“本地以前有，但这次远端完整同步后突然没有出现”的时候才会有内容。</p><div class="safety-steps"><div class="safety-step"><b>1. 正常同步新增条目：</b>你在 Bangumi 网页新增或修改收藏后，点“完整同步”，它会写入本地。</div><div class="safety-step"><b>2. 远端疑似吞条目：</b>条目不会被本地删除，而是进入安全箱。</div><div class="safety-step"><b>3. 你手动判断：</b>确认线上删除 / 本地保留 / 等下次同步恢复。</div></div></div></div>`;
       } else {
-        $('content').innerHTML = `<div class="empty"><div><h2>这里还没有条目</h2><p>先在设置里粘贴 Access Token，然后点“同步最新变动”。</p></div></div>`;
+        $('content').innerHTML = `<div class="empty"><div><h2>这里还没有条目</h2><p>先在设置里粘贴 Access Token，然后点“完整同步”。</p></div></div>`;
       }
       return;
     }
@@ -3763,46 +4311,298 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
     if(!n) return '';
     return Number.isInteger(n) ? String(n) : n.toFixed(1).replace(/\.0$/,'');
   }
+  function mapTimelineEpisodeTimesForCollection(c, source){
+    const raw = source && typeof source === 'object' ? source : {};
+    const watched = Math.max(0, Math.floor(numericValue(completedEpisodesCount(c))));
+    const catalog = primaryEpisodeCatalog(c);
+    const total = catalog.length || Math.max(0, Math.floor(numericValue(c?.eps)));
+    const entries = Object.entries(raw).map(([key, mark])=>{
+      const sourceEpisode = timelineEpisodeSourceNumber(key, mark);
+      return {key, mark:mark && typeof mark === 'object' ? mark : {}, sourceEpisode};
+    }).filter(entry=>Number.isFinite(entry.sourceEpisode) && Number.isInteger(entry.sourceEpisode) && entry.sourceEpisode > 0 && isWatchedTimelineEpisodeMark(entry.mark));
+    const catalogPosition = entry=>{
+      if(!catalog.length) return 0;
+      const episodeId = Number(entry?.mark?.episode_id) || 0;
+      if(episodeId){
+        // Primary and special chapters may both be called "ep.2". A timeline
+        // link has the exact chapter ID, so never fall back to its number.
+        const exact = catalog.findIndex(item=>Number(item.id) === episodeId);
+        return exact >= 0 ? exact + 1 : 0;
+      }
+      const same = (a,b)=>Math.abs(Number(a) - Number(b)) < 0.0001;
+      const fields = entry.mark?.source === 'batch' ? ['ep','sort'] : ['sort','ep'];
+      for(const field of fields){
+        const index = catalog.findIndex(item=>same(item[field], entry.sourceEpisode));
+        if(index >= 0) return index + 1;
+      }
+      return 0;
+    };
+    const directNumbers = entries.filter(entry=>entry.mark.source !== 'batch').map(entry=>entry.sourceEpisode).sort((a,b)=>a-b);
+    const hasBatch = entries.some(entry=>entry.mark.source === 'batch');
+    const title = String(c?.title || c?.name_cn || c?.name || '');
+    const sequelHint = /(?:\b(?:season|part|cour)\b|\b\d+(?:st|nd|rd|th)\s+season\b|第\s*[二三四五六七八九十\d]+\s*(?:季|期)|续篇)/i.test(title);
+    let offset = 0;
+    if(!catalog.length && !hasBatch && directNumbers.length){
+      const first = directNumbers[0];
+      const consecutive = directNumbers.length > 1 && directNumbers.every((episode,index)=>index === 0 || episode === directNumbers[index - 1] + 1);
+      // A separate sequel can start at ep.13 on Bangumi. Do not require the
+      // first number to be greater than the watched count: 13 with 12 watched
+      // is precisely the common 12-episode-first-season continuation shape.
+      const clearContinuation = consecutive && first >= Math.max(9, watched + 1);
+      const hintedContinuation = sequelHint && first > 1;
+      if(clearContinuation || hintedContinuation) offset = first - 1;
+    }
+    const times = {};
+    entries.forEach(entry=>{
+      const localEpisode = catalog.length
+        ? catalogPosition(entry)
+        : (entry.mark.source === 'batch' ? entry.sourceEpisode : entry.sourceEpisode - offset);
+      if(localEpisode < 1 || (total > 0 && localEpisode > total)) return;
+      const key = String(localEpisode);
+      const next = {...entry.mark, source_episode:entry.sourceEpisode, local_episode:localEpisode};
+      const current = times[key];
+      const replace = !current
+        || (current.source === 'batch' && next.source !== 'batch')
+        || (current.source === next.source && timelineTimeOrder(next.time_text) < timelineTimeOrder(current.time_text));
+      if(replace) times[key] = next;
+    });
+    return {times, offset:catalog.length ? 0 : offset};
+  }
+  function mapTimelineEpisodeStatesForCollection(c, source){
+    const raw = source && typeof source === 'object' ? source : {};
+    const catalog = primaryEpisodeCatalog(c);
+    const total = catalog.length || Math.max(0, Math.floor(numericValue(c?.eps)));
+    const {offset} = mapTimelineEpisodeTimesForCollection(c, raw);
+    const same = (a,b)=>Math.abs(Number(a) - Number(b)) < 0.0001;
+    const states = {};
+    Object.entries(raw).forEach(([key, mark])=>{
+      if(!mark || typeof mark !== 'object' || mark.source === 'batch') return;
+      const state = timelineEpisodeMarkState(mark);
+      if(!state || state === 'watched') return;
+      const sourceEpisode = timelineEpisodeSourceNumber(key, mark);
+      if(!Number.isFinite(sourceEpisode) || !Number.isInteger(sourceEpisode) || sourceEpisode < 1) return;
+      const episodeId = Number(mark.episode_id) || 0;
+      const index = catalog.length
+        ? (episodeId
+          ? catalog.findIndex(entry=>Number(entry.id) === episodeId)
+          : catalog.findIndex(entry=>same(entry.sort,sourceEpisode) || same(entry.ep,sourceEpisode)))
+        : sourceEpisode - offset - 1;
+      const localEpisode = index + 1;
+      if(localEpisode < 1 || (total > 0 && localEpisode > total)) return;
+      states[String(localEpisode)] = {...mark, state, source_episode:sourceEpisode, local_episode:localEpisode};
+    });
+    return states;
+  }
+  function timelineEpisodeSourceForCollection(c){
+    // The live timeline cache is authoritative. Older matching passes can
+    // leave an empty or partial persisted object that would otherwise mask it.
+    const live = timelineEpisodeMarksForSubject(c?.subject_id);
+    if(live && Object.keys(live).length) return live;
+    const stored = c?.timeline_episode_times;
+    return stored && typeof stored === 'object' ? stored : {};
+  }
+  function timelineEpisodeSourceNumber(key, mark){
+    const value = mark?.source_episode ?? String(key || '').replace(/^(?:ep|id):/i, '');
+    const number = Number(value);
+    return Number.isFinite(number) ? number : 0;
+  }
+  function timelineSpecialEpisodeRecords(c){
+    const specials = specialEpisodeCatalog(c);
+    if(!specials.length) return [];
+    const byId = new Map(specials.map(entry=>[Number(entry.id), entry]));
+    const records = [];
+    Object.entries(timelineEpisodeSourceForCollection(c)).forEach(([key, mark])=>{
+      if(!mark || mark.source !== 'direct') return;
+      const episodeId = Number(mark.episode_id) || 0;
+      const entry = episodeId ? byId.get(episodeId) : null;
+      // Modern caches always retain the target chapter ID. Do not guess when
+      // it is unavailable: SP/OP/ED may legitimately share the same number.
+      if(entry) records.push({entry, mark, key});
+    });
+    return records.sort((a,b)=>Number(a.entry.type)-Number(b.entry.type)
+      || Number(a.entry.sort)-Number(b.entry.sort)
+      || Number(a.entry.id)-Number(b.entry.id));
+  }
+  function hasEpisodeCollectionStatusSnapshot(c){
+    return !!String(c?.episode_collection_fetched_at || '').trim()
+      && Number(c?.episode_collection_status_schema || 0) >= EPISODE_COLLECTION_STATUS_SCHEMA
+      && !!c?.episode_collection_statuses
+      && typeof c.episode_collection_statuses === 'object';
+  }
+  function specialEpisodeRecords(c){
+    const specials = specialEpisodeCatalog(c);
+    const timeline = new Map(timelineSpecialEpisodeRecords(c).map(record=>[Number(record.entry.id), record.mark]));
+    // The chapter list is the same one shown by Bangumi. Do not hide uncollected
+    // specials: a missing timeline entry is not evidence that the chapter itself
+    // does not exist, especially for long-running shows such as Conan.
+    return specials.map(entry=>({entry, status:episodeCollectionStatusFor(c, entry), mark:timeline.get(Number(entry.id)) || null}));
+  }
+  function timelineSpecialWatchedCount(c){
+    if(hasEpisodeCollectionStatusSnapshot(c)){
+      return specialEpisodeCatalog(c).filter(entry=>Number(episodeCollectionStatusFor(c, entry)?.type) === 2).length;
+    }
+    return timelineSpecialEpisodeRecords(c)
+      .filter(record=>isWatchedTimelineEpisodeMark(record.mark)).length;
+  }
+  function episodeDisplayNumber(entry){
+    const number = Number(entry?.sort);
+    if(Number.isFinite(number) && number !== 0) return Number.isInteger(number) ? String(number) : String(number);
+    const fallback = Number(entry?.ep);
+    return Number.isFinite(fallback) && fallback !== 0 ? String(fallback) : '';
+  }
   function timelineEpisodeTimesForCollection(c){
-    return c.timeline_episode_times || timelineEpisodeMarksForSubject(c.subject_id);
+    const source = timelineEpisodeSourceForCollection(c);
+    return mapTimelineEpisodeTimesForCollection(c, source).times;
+  }
+  function timelineEpisodeStatesForCollection(c){
+    return mapTimelineEpisodeStatesForCollection(c, timelineEpisodeSourceForCollection(c));
+  }
+  function timelineEpisodeOffsetForCollection(c){
+    const source = timelineEpisodeSourceForCollection(c);
+    return mapTimelineEpisodeTimesForCollection(c, source).offset;
   }
   function resolvedEpisodeProgress(c){
     const apiWatched = Math.max(0, Math.floor(numericValue(completedEpisodesCount(c))));
-    const total = Math.max(0, Math.floor(numericValue(c.eps)));
+    const catalog = primaryEpisodeCatalog(c);
+    const total = catalog.length || Math.max(0, Math.floor(numericValue(c.eps)));
     const episodeTimes = timelineEpisodeTimesForCollection(c);
+    const episodeOffset = timelineEpisodeOffsetForCollection(c);
     const timelineMax = Math.max(0, ...Object.keys(episodeTimes || {}).map(Number).filter(Number.isFinite));
-    // Bangumi can keep a completed collection at ep_status 0 after a bulk
-    // “看到” action. Only restore that zero-progress completed state.
-    const restored = Number(c.collection_type) === 2 && apiWatched === 0 && timelineMax > 0;
-    const watched = restored ? Math.min(timelineMax, total || timelineMax) : apiWatched;
-    return {watched, total, episodeTimes, restored};
+    const episodeStatuses = {};
+    const hasEpisodeStatuses = hasEpisodeCollectionStatusSnapshot(c) && !!catalog.length;
+    if(hasEpisodeStatuses){
+      catalog.forEach((entry, index)=>{
+        const status = episodeCollectionStatusFor(c, entry);
+        if(status) episodeStatuses[String(index + 1)] = status;
+      });
+    }
+    // Timeline episode events are written by the same Bangumi episode controls.
+    // They can be newer than a locally cached collection ep_status, so retain
+    // the furthest verified position rather than showing a contradictory value.
+    // Once the authenticated per-episode snapshot is available, it is the
+    // authoritative current state. Timeline records remain timestamps only.
+    const currentWatched = hasEpisodeStatuses
+      ? Object.values(episodeStatuses).filter(status=>Number(status?.type) === 2).length
+      : null;
+    const restored = currentWatched == null && timelineMax > apiWatched;
+    const watched = currentWatched == null
+      ? Math.min(Math.max(apiWatched, timelineMax), total || Math.max(apiWatched, timelineMax))
+      : Math.min(currentWatched, total || currentWatched);
+    return {watched, total, episodeTimes, episodeOffset, catalog, episodeStatuses, hasEpisodeStatuses, restored};
+  }
+  function specialEpisodeProgressHTML(c, panelWidths={}){
+    const allSpecials = specialEpisodeCatalog(c);
+    const records = specialEpisodeRecords(c);
+    if(!records.length) return '';
+    const hasSnapshot = hasEpisodeCollectionStatusSnapshot(c);
+    const groups = [...new Set(records.map(record=>Number(record.entry.type)))].map(type=>({
+      type,
+      records:records.filter(record=>Number(record.entry.type) === type),
+      entries:allSpecials.filter(entry=>Number(entry.type) === type)
+    }));
+    const stateForRecord = ({mark,status})=>status ? episodeCollectionState(status.type) : (hasSnapshot ? 'unwatched' : (timelineEpisodeMarkState(mark) || 'unwatched'));
+    const renderChip = ({entry,mark,status})=>{
+      const state = stateForRecord({mark,status});
+      const number = episodeDisplayNumber(entry);
+      const label = `${episodeTypeLabel(entry)}${number ? ` ${number}` : ''}`;
+      const name = entry.name_cn || entry.name || '';
+      const stateLabel = status ? episodeCollectionStateLabel(status.type) : (hasSnapshot ? '未看' : timelineEpisodeStateLabel(state));
+      const detail = mark?.time_text
+        ? `${stateLabel}于 ${mark.time_text}`
+        : (hasSnapshot ? `${stateLabel}（Bangumi 章节状态已同步${status ? '；时间胶囊未记录逐集时间' : ''}）` : (mark ? '时间胶囊已记录该章节状态' : '章节状态正在同步'));
+      const compact = state === 'unwatched';
+      const tipText = `${label}${name ? ` · ${name}` : ''} · ${detail}`;
+      return `<span class="episode-special-chip ${state ? `state-${state}` : ''} ${compact ? 'is-unwatched' : ''}" data-episode-tip="${esc(tipText)}" aria-label="${esc(tipText)}"><b>${esc(number || '?')}</b>${compact ? '' : `<small>${esc(stateLabel || '已记录')}</small>`}</span>`;
+    };
+    const content = groups.map(group=>{
+      const watched = group.entries.filter(entry=>Number(episodeCollectionStatusFor(c, entry)?.type) === 2).length;
+      const summary = hasSnapshot ? `<small class="episode-special-summary">已看 ${watched}/${group.entries.length}</small>` : '<small class="episode-special-summary">状态同步中</small>';
+      const visibleRecords = group.records.filter(record=>stateForRecord(record) !== 'unwatched');
+      const hiddenRecords = group.records.filter(record=>stateForRecord(record) === 'unwatched');
+      const chips = visibleRecords.map(renderChip).join('');
+      const expandedChips = group.records.map(renderChip).join('');
+      const hiddenCount = hiddenRecords.length;
+      const toggle = hiddenCount ? `<button type="button" class="episode-special-toggle" data-episode-special-toggle data-hidden-count="${hiddenCount}" aria-expanded="false"><span data-special-toggle-label>更多 ${hiddenCount}</span></button>` : '';
+      const primary = `<div class="episode-special-primary"><div class="episode-special-primary-inner">${chips ? `<div class="episode-special-list episode-special-primary-list">${chips}</div>` : ''}</div></div>`;
+      const overflow = hiddenCount ? `<div class="episode-special-overflow"><div class="episode-special-overflow-inner"><div class="episode-special-list episode-special-overflow-list">${expandedChips}</div></div></div>` : '';
+      const typeLabel = episodeTypeLabel({type:group.type});
+      return `<div class="episode-special-group"><div class="episode-special-group-head"><span class="episode-special-group-label" title="章节类型：${esc(typeLabel)}"><b>${esc(typeLabel)}</b></span>${summary}${toggle}</div>${primary}${overflow}</div>`;
+    }).join('');
+    const desktopWidth = Math.max(0, Math.round(Number(panelWidths.desktop) || 0));
+    const mobileWidth = Math.max(0, Math.round(Number(panelWidths.mobile) || desktopWidth));
+    const narrowWidth = Math.max(0, Math.round(Number(panelWidths.narrow) || mobileWidth));
+    const widthStyle = desktopWidth
+      ? ` style="--episode-special-width:${desktopWidth}px;--episode-special-width-mobile:${mobileWidth}px;--episode-special-width-narrow:${narrowWidth}px"`
+      : '';
+    return `<div class="episode-specials-v9"${widthStyle}><span class="episode-specials-title">特别章节</span><div class="episode-special-groups">${content}</div></div>`;
   }
   function episodeProgressHTML(c){
     const resolved = resolvedEpisodeProgress(c);
     const watched = resolved.watched;
     const total = resolved.total;
-    if(!watched && !total) return '';
     const count = total || watched;
-    if(!count) return '';
+    if(!count) return specialEpisodeProgressHTML(c);
     const visibleTotal = Math.min(count, 96);
-    const cols = Math.max(8, Math.min(24, visibleTotal));
-    const mobileCols = Math.max(8, Math.min(18, visibleTotal));
+    const watchedStatusMax = Math.max(0, ...Object.entries(resolved.episodeStatuses || {}).filter(([,status])=>Number(status?.type) === 2).map(([episode])=>Number(episode) || 0));
+    const timedEpisodeMax = Math.max(0, ...Object.keys(resolved.episodeTimes || {}).map(episode=>Number(episode) || 0));
+    const focusEpisode = Math.max(1, Math.min(count, Math.max(watchedStatusMax, timedEpisodeMax, watched || 1)));
+    const visibleStart = count > visibleTotal ? Math.max(1, Math.min(count - visibleTotal + 1, focusEpisode - Math.floor(visibleTotal * .72))) : 1;
+    const cols = Math.max(1, Math.min(24, visibleTotal));
+    const mobileCols = Math.max(1, Math.min(18, visibleTotal));
+    const narrowCols = Math.max(1, Math.min(12, visibleTotal));
+    const specials = specialEpisodeProgressHTML(c, {
+      desktop:cols * 26 + Math.max(0, cols - 1) * 4 + 26,
+      mobile:mobileCols * 25 + Math.max(0, mobileCols - 1) * 4 + 26,
+      narrow:narrowCols * 24 + Math.max(0, narrowCols - 1) * 3 + 22
+    });
     const episodeTimes = resolved.episodeTimes;
+    const episodeStates = timelineEpisodeStatesForCollection(c);
+    const catalog = resolved.catalog || [];
+    const episodeLabel = value => {
+      const number = Number(value);
+      return Number.isFinite(number) && !Number.isInteger(number) ? String(number) : String(Math.trunc(number || 0));
+    };
+    const displayEpisodeAt = localEpisode => {
+      const entry = catalog[localEpisode - 1];
+      return entry?.sort > 0 ? entry.sort : localEpisode + Math.max(0, Number(resolved.episodeOffset || 0));
+    };
+    const hasTimelineEpisodeRecords = Object.values(timelineEpisodeSourceForCollection(c)).some(isWatchedTimelineEpisodeMark);
     const cells = Array.from({length: visibleTotal}, (_,i)=>{
-      const episode = i + 1;
-      const mark = i < watched ? episodeTimes?.[String(episode)] : null;
-      const watchedText = i < watched ? '已看' : '未看';
+      const episode = visibleStart + i;
+      const displayEpisode = displayEpisodeAt(episode);
+      const collectionStatus = resolved.episodeStatuses?.[String(episode)] || null;
+      const isWatched = collectionStatus ? Number(collectionStatus.type) === 2 : episode <= watched;
+      const mark = isWatched ? episodeTimes?.[String(episode)] : null;
+      const stateMark = episodeStates[String(episode)] || null;
+      const state = collectionStatus ? episodeCollectionState(collectionStatus.type) : timelineEpisodeMarkState(stateMark);
+      const watchedText = collectionStatus
+        ? episodeCollectionStateLabel(collectionStatus.type)
+        : (state ? timelineEpisodeStateLabel(state) : (isWatched ? '已看' : '未看'));
+      const sourceEpisode = Number(mark?.source_episode ?? displayEpisode);
+      const sourceText = Number.isFinite(sourceEpisode) && Math.abs(sourceEpisode - Number(displayEpisode)) >= 0.0001 ? ` · 胶囊记录为第 ${episodeLabel(sourceEpisode)} 集` : '';
       const timeText = mark?.time_text
-        ? (mark.source === 'batch' ? ` · 通过“看到”批量标记于 ${mark.time_text}` : ` · 观看于 ${mark.time_text}`)
-        : (i < watched ? ' · 时间胶囊未记录逐集时间' : '');
-      return `<span class="ep-cell-v9 ${i < watched ? 'watched' : ''}" title="第 ${episode} 集 · ${watchedText}${esc(timeText)}"></span>`;
+        ? (mark.source === 'batch' ? `${sourceText} · 通过“看到”批量标记于 ${mark.time_text}` : `${sourceText} · 观看于 ${mark.time_text}`)
+        : (collectionStatus
+          ? ' · Bangumi 章节状态已同步，时间胶囊未记录逐集时间'
+          : (stateMark?.time_text ? ` · ${watchedText}于 ${stateMark.time_text}` : (isWatched ? (hasTimelineEpisodeRecords ? ' · 时间胶囊没有这个章节的记录' : ' · 时间胶囊没有该条目的逐集观看记录') : '')));
+      const displayLabel = episodeLabel(displayEpisode);
+      const tipText = `第 ${displayLabel} 集 · ${watchedText}${timeText}`;
+      return `<span class="ep-cell-v9 ${isWatched ? 'watched' : ''} ${state ? `state-${state}` : ''} ${displayLabel.length > 3 ? 'is-long-number' : ''}" data-episode-tip="${esc(tipText)}" aria-label="${esc(tipText)}"><b>${esc(displayLabel)}</b></span>`;
     }).join('');
-    const more = count > visibleTotal ? ` · 显示前 ${visibleTotal} 格` : '';
+    const visibleFirst = displayEpisodeAt(visibleStart);
+    const visibleLast = displayEpisodeAt(visibleStart + visibleTotal - 1);
+    const more = count > visibleTotal ? ` · 显示第 ${episodeLabel(visibleFirst)}–${episodeLabel(visibleLast)} 集` : '';
     const percent = total ? Math.round(Math.min(watched,total)/total*100) : 100;
+    const firstDisplay = displayEpisodeAt(1);
+    const lastDisplay = watched ? displayEpisodeAt(watched) : 0;
+    const totalDisplay = total ? displayEpisodeAt(total) : 0;
+    const nonStandardNumbers = Number(firstDisplay) !== 1 || Number(totalDisplay) !== Number(total);
+    const watchedText = nonStandardNumbers && watched ? `${episodeLabel(firstDisplay)}${watched > 1 ? `–${episodeLabel(lastDisplay)}` : ''}` : String(watched);
+    const totalText = total ? episodeLabel(nonStandardNumbers ? totalDisplay : total) : '';
     return `<div class="episode-strip-v9 ${count>48?'compact':''}">
-      <div class="episode-strip-head"><span>观看进度</span><span>${watched}${total?` / ${total}`:''} 集 · ${percent}%${resolved.restored?' · 时间胶囊还原':''}${more}</span></div>
-      <div class="episode-grid-v9 ${count>48?'too-many':''}" style="--ep-cols:${cols};--ep-cols-mobile:${mobileCols}">${cells}</div>
-    </div>`;
+      <div class="episode-strip-head"><span>观看进度</span><span>${watchedText}${total?` / ${totalText}`:''} 集 · ${percent}%${resolved.restored?' · 时间胶囊还原':''}${more}</span></div>
+      <div class="episode-grid-v9 ${count>48?'too-many':''}" style="--ep-cols:${cols};--ep-cols-mobile:${mobileCols};--ep-cols-narrow:${narrowCols}">${cells}</div>
+    </div>${specials}`;
   }
   function scoreCardHTML(c){
     const personal = Math.max(0, Math.min(10, numericValue(c.rate)));
@@ -3827,34 +4627,42 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
   function timelineEpisodeMarksForSubject(subjectId){
     return timelineCache?.episode_marks?.[String(subjectId)] || {};
   }
+  function matchTimelineEpisodesForCollection(row, source){
+    const raw = source && typeof source === 'object'
+      ? source
+      : (timelineCache?.episode_marks?.[String(row?.subject_id || '')] || {});
+    const {times} = mapTimelineEpisodeTimesForCollection(row, raw);
+    Object.keys(times).forEach(episode=>{
+      const mark = times[episode];
+      times[episode] = {
+        event_id:String(mark.event_id || ''),
+        time_text:String(mark.time_text || ''),
+        source:mark.source === 'batch' ? 'batch' : 'direct',
+        source_episode:Number(mark.source_episode || episode) || Number(episode),
+        local_episode:Number(mark.local_episode || episode) || Number(episode)
+      };
+    });
+    const count = Object.keys(times).length;
+    const changed = !valuesSame(row.timeline_episode_times || {}, times)
+      || Number(row.timeline_episode_match_count || 0) !== count
+      || (count > 0 && !row.timeline_episode_matched_at);
+    if(changed){
+      if(count) row.timeline_episode_times = times;
+      else delete row.timeline_episode_times;
+      row.timeline_episode_match_count = count;
+      row.timeline_episode_matched_at = nowISO();
+    }
+    return {changed, count};
+  }
   async function matchTimelineEpisodesToCollections(){
     const index = timelineCache?.episode_marks || {};
     let changed = false;
     let matchedRows = 0;
     let matchedEpisodes = 0;
     for(const row of getAllCollections()){
-      const source = index[String(row?.subject_id || '')] || {};
-      const times = {};
-      Object.entries(source).forEach(([episode, mark])=>{
-        if(!Number(episode) || !mark?.time_text) return;
-        times[String(episode)] = {
-          event_id:String(mark.event_id || ''),
-          time_text:String(mark.time_text || ''),
-          source:mark.source === 'batch' ? 'batch' : 'direct'
-        };
-      });
-      const count = Object.keys(times).length;
-      if(count){ matchedRows++; matchedEpisodes += count; }
-      const needsPersist = !valuesSame(row.timeline_episode_times || {}, times)
-        || Number(row.timeline_episode_match_count || 0) !== count
-        || (count > 0 && !row.timeline_episode_matched_at);
-      if(needsPersist){
-        if(count) row.timeline_episode_times = times;
-        else delete row.timeline_episode_times;
-        row.timeline_episode_match_count = count;
-        row.timeline_episode_matched_at = nowISO();
-        changed = true;
-      }
+      const result = matchTimelineEpisodesForCollection(row, index[String(row?.subject_id || '')] || {});
+      if(result.count){ matchedRows++; matchedEpisodes += result.count; }
+      if(result.changed) changed = true;
     }
     if(changed) await saveState({history:false});
     return {changed, matchedRows, matchedEpisodes};
@@ -3864,10 +4672,54 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
     if(!mark?.time_text) return '';
     return `<span class="pill timeline-marked-at" title="来自时间胶囊的最早收藏或进度记录">标记于 ${esc(mark.time_text)}</span>`;
   }
+  let drawerHistoryIndex = null;
+  let drawerHistoryIndexSource = null;
+  let drawerHistoryIndexLength = -1;
+  function drawerHistoryFor(subjectId){
+    const history = Array.isArray(state.history) ? state.history : [];
+    if(drawerHistoryIndexSource !== history || drawerHistoryIndexLength !== history.length){
+      const index = new Map();
+      for(const item of history){
+        const key = String(item?.subject_id || '');
+        if(!key) continue;
+        const bucket = index.get(key);
+        if(bucket) bucket.push(item);
+        else index.set(key, [item]);
+      }
+      drawerHistoryIndex = index;
+      drawerHistoryIndexSource = history;
+      drawerHistoryIndexLength = history.length;
+    }
+    const items = drawerHistoryIndex?.get(String(subjectId || '')) || [];
+    return items.length > 10 ? items.slice(-10).reverse() : [...items].reverse();
+  }
+  function drawerHistoryMarkup(subjectId){
+    if(!historyLoaded){
+      return `<div class="hist muted-inline">${esc(historyLoadError ? `备份历史暂时无法读取：${historyLoadError}` : '正在从本地资料库读取备份历史…')}</div>`;
+    }
+    const hist = drawerHistoryFor(subjectId);
+    return hist.length
+      ? hist.map(h=>`<div class="hist"><b>${esc(h.change_type)}</b> · ${esc(formatDate(h.created_at))}<br>${historyChangeHtml(h)}</div>`).join('')
+      : '<div class="hist">还没有历史变更。</div>';
+  }
+  function refreshDrawerHistoryPanel(){
+    const id = String(activeDrawerId || '');
+    const row = state.collections?.[id];
+    const list = $('drawer')?.querySelector?.('[data-drawer-history]');
+    if(!row || !list) return;
+    list.innerHTML = drawerHistoryMarkup(row.subject_id);
+  }
+  function warmDrawerHistoryIndex(){
+    const warm = ()=>{ if(historyLoaded) drawerHistoryFor(''); };
+    if(typeof requestIdleCallback === 'function') requestIdleCallback(warm, {timeout:1200});
+    else setTimeout(warm, 180);
+  }
   async function openDrawer(id){
+    const openGeneration = ++drawerOpenGeneration;
     activeDrawerId = id; const c = state.collections[id]; if(!c) return;
     const imgCache = await getCachedImage(id); const img = imgCache?.dataUrl || imgCache?.url || coverUrl(c);
-    const hist = state.history.filter(h => String(h.subject_id)===String(id)).slice(-10).reverse();
+    if(openGeneration !== drawerOpenGeneration || String(activeDrawerId || '') !== String(id)) return;
+    const historyHtml = drawerHistoryMarkup(c.subject_id);
     const statusPills = `<span class="pill">${esc(SUBJECT_LABEL[c.subject_type]||'条目')}</span><span class="pill">${esc(statusLabel(c.subject_type, c.collection_type)||'未知')}</span>${timelineMarkPill(c.subject_id)}${c.private?`<span class="pill">私密</span>`:''}${c.status==='missing_candidate'?`<span class="pill danger">安全箱 · 疑似消失</span>`:''}`;
     const myTags = myTagsOf(c);
     const publicTags = publicTagsOf(c);
@@ -3906,7 +4758,7 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
               <div class="info-card"><h3>资料库信息</h3><div class="kv"><div>条目 ID</div><div>${esc(c.subject_id||'-')}</div><div>原名</div><div>${esc(c.name||'-')}</div><div>中文名</div><div>${esc(c.name_cn||'-')}</div><div>上映日期</div><div>${esc(c.date||'-')}</div><div>Bangumi均分</div><div>${esc(formatScoreValue(c.bgm_score || c.raw?.subject?.score || c.raw?.subject?.rating?.score) || '-')}</div><div>排名</div><div>${esc(c.rank || '-')}</div><div>进度</div><div>${esc([completedEpisodesCount(c)?`已完成章节 ${completedEpisodesCount(c)}`:'',completedVolumesCount(c)?`已完成卷 ${completedVolumesCount(c)}`:''].filter(Boolean).join(' / ') || '-')}</div><div>API最后更新时间</div><div>${esc(formatDate(c.bangumi_updated_at)||'-')}</div><div>首次备份</div><div>${esc(formatDate(c.first_seen_at)||'-')}</div><div>本地同步</div><div>${esc(formatDate(c.last_synced_at || c.last_seen_at)||'-')}</div><div>状态</div><div>${esc(c.status||'active')}${c.missing_count?`，缺失次数 ${c.missing_count}`:''}</div></div></div>
               <div class="info-card"><h3>我的标签</h3><div class="tag-cloud">${myTagsHtml}</div></div>
               <div class="info-card"><h3>公共标签</h3><div class="tag-cloud">${publicTagsHtml}</div><p class="help" style="margin:10px 0 0">${publicTagsNote}<br>点击标签在本地筛选；点 ↗ 打开 Bangumi 对应标签页。</p></div>
-              <div class="info-card"><h3>备份历史</h3><div class="history-list">${hist.length?hist.map(h=>`<div class="hist"><b>${esc(h.change_type)}</b> · ${esc(formatDate(h.created_at))}<br>${historyChangeHtml(h)}</div>`).join(''):'<div class="hist">还没有历史变更。</div>'}</div></div>
+              <div class="info-card"><h3>备份历史</h3><div class="history-list" data-drawer-history>${historyHtml}</div></div>
             </div>
           </section>
         </main>
@@ -3916,9 +4768,12 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
     $('drawer').querySelectorAll('[data-tag-key]').forEach(btn=>btn.onclick=(ev)=>{ ev.stopPropagation(); resetRenderLimit(); filters.tag = btn.dataset.tagKey; closeDrawer(); render(); });
     $('openBgmBtn').onclick = () => window.open(`${siteBase()}/subject/${c.subject_id}`,'_blank','noopener');
     $('copyCommentBtn').onclick = async () => { await navigator.clipboard?.writeText(c.comment||''); toast('已复制吐槽'); };
-    const keep=$('keepLocalBtn'); if(keep) keep.onclick=async()=>{ c.status='protected_local'; c.missing_count=0; await saveState(); render(); openDrawer(id); toast('已标记为本地保留'); };
-    const del=$('confirmDeleteBtn'); if(del) del.onclick=async()=>{ if(confirm('确认把这个条目标记为线上已删除？历史和导出仍会保留。')){ c.status='confirmed_deleted'; c.missing_count=(c.missing_count||0)+1; state.history.push({subject_id:c.subject_id, change_type:'confirmed_deleted', old:null, new:structuredClone(c), created_at:nowISO(), note:'用户确认远端删除'}); await saveState(); render(); openDrawer(id); } };
-    const res=$('restoreBtn'); if(res) res.onclick=async()=>{ c.status='active'; c.missing_count=0; await saveState(); render(); openDrawer(id); };
+    const keep=$('keepLocalBtn'); if(keep) keep.onclick=async()=>{ c.status='protected_local'; c.missing_count=0; await saveState({history:false}); render(); openDrawer(id); toast('已标记为本地保留'); };
+    const del=$('confirmDeleteBtn'); if(del) del.onclick=async()=>{ if(await askNonBlockingConfirmation('确认把这个条目标记为线上已删除？历史和导出仍会保留。', {title:'确认线上删除', confirmText:'确认删除', danger:true})){ c.status='confirmed_deleted'; c.missing_count=(c.missing_count||0)+1; await appendHistory({subject_id:c.subject_id, change_type:'confirmed_deleted', old:null, new:structuredClone(c), created_at:nowISO(), note:'用户确认线上删除'}); await saveState(); render(); openDrawer(id); } };
+    const res=$('restoreBtn'); if(res) res.onclick=async()=>{ c.status='active'; c.missing_count=0; await saveState({history:false}); render(); openDrawer(id); };
+    if(!historyLoaded && historyDeferred){
+      ensureHistoryLoaded().catch(()=>refreshDrawerHistoryPanel());
+    }
   }
 
   function closeDrawer(){ const mask=$('drawerMask'), d=$('drawer'); if(!d.classList.contains('show')) return; d.classList.add('closing'); mask.classList.add('closing'); const ms=(state.settings.motion==='off')?0:190; setTimeout(()=>{ mask.classList.remove('show','closing'); d.classList.remove('show','closing'); activeDrawerId=null; }, ms); }
@@ -3928,9 +4783,19 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
     $('statTotal').textContent = active.length; $('statMissing').textContent = arr.filter(c=>c.status==='missing_candidate').length;
     $('statComments').textContent = active.filter(c=>c.comment).length; const tagSet = new Set(); active.forEach(c=>allTagNames(c).forEach(t=>tagSet.add(t))); $('statTags').textContent = tagSet.size;
     renderAccountPill();
-    const last = state.runs.filter(r=>r.success).at(-1); $('lastSyncText').textContent = last ? `上次同步：${formatDate(last.finished_at)}，新增 ${last.added||0}，修改 ${last.modified||0}，疑似消失 ${last.missing||0}` : '尚未同步'; if($('bangumiLogoLink')) $('bangumiLogoLink').href = siteBase(); localApiAvailable().then(ok=>{ const el=$('portableStatus'); if(el) el.textContent = ok ? '存储：收藏数据.json + 收藏条目.json + 变更历史.json + 时间胶囊数据.json' : '存储：浏览器本地库（建议用启动脚本）'; });
+    const last = state.runs.filter(r=>r.success).at(-1);
+    $('lastSyncText').textContent = last ? `上次同步：${formatDate(last.finished_at)}，新增 ${last.added||0}，修改 ${last.modified||0}，疑似消失 ${last.missing||0}` : '尚未同步';
+    if($('bangumiLogoLink')) $('bangumiLogoLink').href = siteBase();
+    const storageEl = $('portableStatus');
+    if(storageEl && window.BANGUMI_VAULT_OFFLINE_STATE){
+      storageEl.textContent = window.BANGUMI_VAULT_OFFLINE_MODE === 'no-images' ? '存储：单文件离线备份 · 无封面 · 只读' : '存储：完整离线备份 · 只读';
+    } else if(storageEl){
+      localApiAvailable().then(ok=>{
+        storageEl.textContent = vaultIntegrityIssues.length ? `存储检查：发现 ${vaultIntegrityIssues.length} 项不一致，建议从导出备份恢复` : (ok ? '存储：收藏数据.json + 收藏条目.json + 变更历史.json + 时间胶囊数据.json' : '存储：浏览器本地库（建议用启动脚本）');
+      });
+    }
   }
-  function render(){ renderStats(); renderStatusNav(); renderTags(); renderCards(); if(profilePanelOpen) renderProfilePanel(); }
+  function render(){ syncMainSearchControl(); renderStats(); renderStatusNav(); renderTags(); renderCards(); if(profilePanelOpen) renderProfilePanel(); }
 
   function queueApiRequest(task){
     const job = apiRequestTail.then(async()=>{
@@ -4023,34 +4888,90 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
       || !!timelineEpisodeNumber(event)
       || !!timelineBatchProgress(event);
   }
+  function timelineSubjectIdsForMark(event){
+    const ids = new Set();
+    const primaryId = String(event?.subject_id || '').trim();
+    if(/^\d+$/.test(primaryId)) ids.add(primaryId);
+    if(isTimelineCollectionAction(event?.action)){
+      for(const link of Array.isArray(event?.links) ? event.links : []){
+        const linkId = String(link?.id || '').trim();
+        if(String(link?.type || '') === 'subject' && /^\d+$/.test(linkId)) ids.add(linkId);
+      }
+    }
+    return [...ids];
+  }
   function buildTimelineMarks(events){
     const marks = {};
     for(const event of events || []){
-      const subjectId = String(event?.subject_id || '');
-      if(!subjectId || !isTimelineSubjectRecord(event)) continue;
-      const previous = marks[subjectId];
-      const earlier = !previous || timelineTimeOrder(event.time_text) < timelineTimeOrder(previous.time_text)
-        || (timelineTimeOrder(event.time_text) === timelineTimeOrder(previous.time_text) && Number(event.event_id) < Number(previous.event_id));
-      if(earlier) marks[subjectId] = {event_id:String(event.event_id || ''), time_text:String(event.time_text || ''), action:String(event.action || ''), subject_title:String(event.subject_title || '')};
+      if(!isTimelineSubjectRecord(event)) continue;
+      for(const subjectId of timelineSubjectIdsForMark(event)){
+        const previous = marks[subjectId];
+        const earlier = !previous || timelineTimeOrder(event.time_text) < timelineTimeOrder(previous.time_text)
+          || (timelineTimeOrder(event.time_text) === timelineTimeOrder(previous.time_text) && Number(event.event_id) < Number(previous.event_id));
+        if(!earlier) continue;
+        const linkedSubject = (Array.isArray(event?.links) ? event.links : []).find(link => String(link?.type || '') === 'subject' && String(link?.id || '') === subjectId);
+        marks[subjectId] = {
+          event_id:String(event.event_id || ''),
+          time_text:String(event.time_text || ''),
+          action:String(event.action || ''),
+          subject_title:String(linkedSubject?.title || (subjectId === String(event?.subject_id || '') ? event?.subject_title : '') || '')
+        };
+      }
     }
     return marks;
   }
+  function timelineEpisodeEventState(event){
+    const text = String(event?.action || event?.text || '').replace(/\s+/g, '');
+    if(/^(?:看过|读过|听过|玩过|完成了|已看|已读|已听|已玩)/.test(text)) return 'watched';
+    if(/^(?:想看|想读|想听|想玩)/.test(text)) return 'wish';
+    if(/^(?:抛弃|放弃|弃置)/.test(text)) return 'abandoned';
+    if(/^(?:撤销|取消)/.test(text)) return 'cleared';
+    return '';
+  }
+  function timelineEpisodeMarkState(mark){
+    return mark ? (String(mark.state || '') || 'watched') : '';
+  }
+  function isWatchedTimelineEpisodeMark(mark){
+    return timelineEpisodeMarkState(mark) === 'watched';
+  }
+  function timelineEpisodeStateLabel(state){
+    return ({watched:'已看',wish:'想看',abandoned:'抛弃',cleared:'已撤销'})[state] || '';
+  }
+  function timelineEpisodeEntityId(event){
+    for(const link of Array.isArray(event?.links) ? event.links : []){
+      const match = String(link?.href || '').match(/\/subject\/ep\/(\d+)/i);
+      if(match) return Number(match[1]) || 0;
+    }
+    return 0;
+  }
   function timelineEpisodeNumber(event){
-    const text = [event?.text, event?.action].filter(Boolean).join(' ');
-    const match = text.match(/\b(?:ep|episode)\s*\.?\s*(\d+(?:\.\d+)?)/i)
-      || text.match(/第\s*(\d+(?:\.\d+)?)\s*(?:话|話|集|章|卷)/);
-    if(!match) return 0;
-    const episode = Number(match[1]);
-    return Number.isFinite(episode) && episode > 0 && Number.isInteger(episode) ? episode : 0;
+    // Only treat an event as a per-episode record when its leading action names
+    // an episode. A collection comment can casually mention "第 12 集" or
+    // "EP23" and must not create a false viewing timestamp.
+    const parseDirectEpisode = value => {
+      const text = String(value || '').trim();
+      const action = '(?:看过|读过|听过|玩过|完成了|已看|已读|已听|已玩|想看|想读|想听|想玩|抛弃了?|放弃了?|弃置了?|撤销|取消)';
+      const match = text.match(new RegExp(`^(?:${action}\\s*)?(?:ep|episode)\\s*\\.?\\s*(\\d+(?:\\.\\d+)?)(?:\\b|\\s)`, 'i'))
+        || text.match(new RegExp(`^(?:${action}\\s*)?第\\s*(\\d+(?:\\.\\d+)?)\\s*(?:话|話|集|章|卷)`));
+      return match ? Number(match[1]) : 0;
+    };
+    const episode = parseDirectEpisode(event?.text) || parseDirectEpisode(event?.action);
+    return Number.isFinite(episode) && episode > 0 ? episode : 0;
   }
   function timelineBatchProgress(event){
     const text = [event?.text, event?.action].filter(Boolean).join(' ');
     const match = text.match(/(\d+)\s*(?:of|\/)\s*(\d+)\s*(?:话|話|集)/i);
-    if(!match) return null;
-    const watched = Number(match[1]);
-    const total = Number(match[2]);
-    if(!Number.isInteger(watched) || !Number.isInteger(total) || watched < 1 || total < watched) return null;
-    return {watched, total};
+    if(match){
+      const watched = Number(match[1]);
+      const total = Number(match[2]);
+      if(Number.isInteger(watched) && Number.isInteger(total) && watched >= 1 && total >= watched) return {watched, total, total_unknown:false};
+    }
+    // Bangumi can emit “2 of ?? 话” before the final episode count is known.
+    // It still proves that episodes 1 through 2 were marked together.
+    const unknownTotal = text.match(/(\d+)\s*(?:of|\/)\s*(?:\?+|未知|unknown)\s*(?:话|話|集)/i);
+    if(!unknownTotal) return null;
+    const watched = Number(unknownTotal[1]);
+    return Number.isInteger(watched) && watched >= 1 ? {watched, total:watched, total_unknown:true} : null;
   }
   function buildTimelineEpisodeMarks(events){
     const grouped = {};
@@ -4076,8 +4997,10 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
               event_id:String(event.event_id || ''),
               time_text:String(event.time_text || ''),
               source:'batch',
+              state:'watched',
               watched:batch.watched,
               total:batch.total,
+              total_unknown:!!batch.total_unknown,
               action:String(event.action || ''),
               text:String(event.text || '')
             };
@@ -4085,11 +5008,20 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
           continue;
         }
         const episode = timelineEpisodeNumber(event);
-        if(!episode) continue;
-        bucket[String(episode)] = {
+        const episodeId = timelineEpisodeEntityId(event);
+        const state = timelineEpisodeEventState(event);
+        if(!state || (!episode && !episodeId)) continue;
+        // A subject can have a regular ep.2 and an SP ep.2. Store direct
+        // records by their target episode ID so they never overwrite each
+        // other, nor overwrite a batch "看到 4 of 24" record.
+        const key = episodeId ? `id:${episodeId}` : `ep:${episode}`;
+        bucket[key] = {
           event_id:String(event.event_id || ''),
           time_text:String(event.time_text || ''),
           source:'direct',
+          state,
+          source_episode:episode || 0,
+          episode_id:episodeId,
           action:String(event.action || ''),
           text:String(event.text || '')
         };
@@ -4173,7 +5105,7 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
     const username = String(state.settings.username || state.profile?.username || '').trim();
     if(!username){ toast('请先在设置中填写 Bangumi 用户名'); return; }
     if(!(await localApiAvailable())){ toast('读取全部时间胶囊需要桌面版本地服务'); return; }
-    if(!confirm('将逐页读取该用户的全部时间胶囊，并以至少 1.25 秒/页的频率访问 Bangumi。读取可能需要较长时间，是否继续？')) return;
+    if(!(await askNonBlockingConfirmation('将逐页读取该用户的全部时间胶囊，并以至少 1.25 秒/页的频率访问 Bangumi。读取可能需要较长时间。', {title:'读取时间胶囊', confirmText:'开始读取'}))) return;
     openModal('syncModal'); $('syncLog').textContent = ''; setProgress(0);
     if($('syncTitle')) $('syncTitle').textContent = '读取全部时间胶囊';
     if($('syncHelp')) $('syncHelp').textContent = '时间胶囊会单独保存为 资料库/时间胶囊数据.json。仅提取结构化事件，不会增加收藏数据文件体积。';
@@ -4239,7 +5171,7 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
       : (requiresFullRebuild
         ? '\u65e7\u7248\u7f13\u5b58\u53ea\u4fdd\u5b58\u4e86\u6761\u76ee\u76f8\u5173\u52a8\u6001\u3002\u4e3a\u4e86\u8865\u5168\u4eba\u7269\u3001\u597d\u53cb\u3001\u5c0f\u7ec4\u7b49\u6240\u6709\u65f6\u95f4\u80f6\u56ca\u4e8b\u4ef6\uff0c\u9700\u8981\u5b8c\u6574\u8bfb\u53d6\u4e00\u6b21\u3002\u4e4b\u540e\u5c06\u53ea\u505a\u589e\u91cf\u66f4\u65b0\u3002\n\u662f\u5426\u7ee7\u7eed\uff1f'
         : '\u5c06\u9010\u9875\u8bfb\u53d6\u5168\u90e8\u65f6\u95f4\u80f6\u56ca\uff0c\u5e76\u4ee5\u81f3\u5c11 1.25 \u79d2/\u9875\u7684\u9891\u7387\u8bbf\u95ee Bangumi\u3002\u8bfb\u53d6\u53ef\u80fd\u9700\u8981\u8f83\u957f\u65f6\u95f4\uff0c\u662f\u5426\u7ee7\u7eed\uff1f');
-    if(!confirm(prompt)) return;
+    if(!(await askNonBlockingConfirmation(prompt, {title:incremental ? '更新时间胶囊' : '读取时间胶囊', confirmText:incremental ? '开始更新' : '开始读取'}))) return;
     const task = beginLongTask('timeline');
     if(!task) return;
     openModal('syncModal'); $('syncLog').textContent = ''; setProgress(0);
@@ -4328,7 +5260,7 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
   function readToken(){ return $('tokenInput').value.trim() || runtimeToken || state.settings.token || ''; }
   async function saveSettingsFromUI(){
     state.settings.username = $('usernameInput').value.trim(); state.settings.recentMonths = Math.max(1, Math.min(120, Number($('recentMonthsInput')?.value || 3))); state.settings.pageSize = clampNum($('pageSizeInput')?.value, 8, 360, 120); state.settings.commentLines = clampNum($('commentLinesInput')?.value, 0, 6, 0); state.settings.borderWidth = clampNum($('borderWidthInput')?.value, 0, 4, 1); state.settings.customFont = String($('customFontInput')?.value || '').trim(); state.settings.apiBase = cleanBaseUrl($('apiBaseInput')?.value || '', ''); state.settings.imageProxyBase = cleanBaseUrl($('imageProxyBaseInput')?.value || '', ''); state.settings.siteBase = cleanBaseUrl($('siteBaseInput')?.value || '', ''); state.settings.customApiPrivate = !!$('customApiPrivateInput')?.checked; state.settings.rememberToken = $('rememberTokenInput').checked; state.settings.profileIntro = String($('profileIntroInput')?.value || '').trim(); state.settings.token = state.settings.rememberToken ? $('tokenInput').value.trim() : '';
-    runtimeToken = $('tokenInput').value.trim() || runtimeToken; applyAppearance(false); refreshSegmentedControls(); resetRenderLimit(); await saveState({collections:false, history:false}); render(); toast('设置已保存');
+    runtimeToken = $('tokenInput').value.trim() || runtimeToken; applyAppearance(false); refreshSegmentedControls(); resetRenderLimit(); await saveState({collections:false, history:false}); render(); toast(window.BANGUMI_VAULT_OFFLINE_STATE ? '个性化设置已应用' : '设置已保存');
   }
   function fillSettingsUI(){ $('tokenInput').value = state.settings.rememberToken ? (state.settings.token||'') : runtimeToken; $('usernameInput').value = state.settings.username||''; if($('recentMonthsInput')) $('recentMonthsInput').value = state.settings.recentMonths || 3; if($('pageSizeInput')) $('pageSizeInput').value = pageSize(); if($('commentLinesInput')) $('commentLinesInput').value = clampNum(state.settings.commentLines,0,6,0); if($('customFontInput')) $('customFontInput').value = state.settings.customFont || ''; if($('borderWidthInput')) $('borderWidthInput').value = clampNum(state.settings.borderWidth,0,4,1); if($('apiBaseInput')) $('apiBaseInput').value = state.settings.apiBase || ''; if($('imageProxyBaseInput')) $('imageProxyBaseInput').value = state.settings.imageProxyBase || ''; if($('siteBaseInput')) $('siteBaseInput').value = state.settings.siteBase || ''; if($('profileIntroInput')) $('profileIntroInput').value = state.settings.profileIntro || ''; if($('customApiPrivateInput')) $('customApiPrivateInput').checked = !!state.settings.customApiPrivate; $('rememberTokenInput').checked = !!state.settings.rememberToken; refreshSegmentedControls(); }
 
@@ -4337,6 +5269,11 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
   async function syncAll(){ return syncCollections('full'); }
   async function syncCollections(mode='full'){
     const token = readToken(); if(!token){ fillSettingsUI(); openModal('settingsModal'); toast('请先设置 Access Token'); return; }
+    if(!historyLoaded){
+      toast('正在读取本地备份历史…');
+      try{ await ensureHistoryLoaded(); }
+      catch(error){ toast(`无法读取备份历史：${error?.message || error}`); return; }
+    }
     const task = beginLongTask(mode === 'full' ? '完整同步' : '最近同步');
     if(!task) return;
     let activeRun = null;
@@ -4434,7 +5371,11 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
           && Number(row.subject_detail_missing_auth_revision) === SUBJECT_LOOKUP_AUTH_REVISION;
         return !row.subject_detail_fetched_at && !knownMissing;
       });
+      const needsEpisodeCatalog = detailCandidates.filter(row => Number(row.subject_type) === 2 && !hasEpisodeCatalog(row) && !row.episode_catalog_missing_at);
+      const detailPhaseEnd = needsEpisodeCatalog.length ? 85 : 100;
       run.details_total = needsSubjectInfo.length;
+      run.episode_catalog_total = needsEpisodeCatalog.length;
+      run.episode_catalog_completed = 0;
       if(needsSubjectInfo.length){
         if($('syncTitle')) $('syncTitle').textContent = mode === 'full' ? '完整同步：收藏已保存，补齐条目资料' : '同步最近：收藏已保存，补齐条目资料';
         if($('syncHelp')) $('syncHelp').textContent = `条目资料每条需要一次官方 API 请求，保持至少 ${Math.round(API_REQUEST_INTERVAL_MS/1000*100)/100} 秒间隔。每 100 条会写入一次断点；关闭窗口后下次同步只补尚未完成的条目。`;
@@ -4454,7 +5395,7 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
             if(i < 8) log('syncLog',`条目资料补全失败 ${row.subject_id}：${e.message || e}`);
           }
           run.details_completed = i + 1;
-          setProgress(70 + (i + 1) / needsSubjectInfo.length * 30);
+          setProgress(70 + (i + 1) / needsSubjectInfo.length * (detailPhaseEnd - 70));
           if((i+1)%8 === 0) log('syncLog',`条目资料进行中：${i+1}/${needsSubjectInfo.length}`);
           if((i+1)%100 === 0 || i+1 === needsSubjectInfo.length){
             await saveState();
@@ -4462,6 +5403,32 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
           }
           await sleep(35);
         }
+      }
+      if(needsEpisodeCatalog.length){
+        const catalogStart = needsSubjectInfo.length ? 85 : 70;
+        if($('syncTitle')) $('syncTitle').textContent = mode === 'full' ? '完整同步：缓存 Bangumi 动画章节' : '同步最近：缓存 Bangumi 动画章节';
+        if($('syncHelp')) $('syncHelp').textContent = `章节表提供 Bangumi 实际集号、SP 等信息；每个动画条目使用一次官方 API 请求，保持至少 ${Math.round(API_REQUEST_INTERVAL_MS/1000*100)/100} 秒间隔，并写入本地条目资料。`;
+        log('syncLog',`Bangumi 章节表：${needsEpisodeCatalog.length} 个动画条目待缓存，用于准确显示续作集号与匹配时间胶囊。`);
+        setProgress(catalogStart);
+        for(let i=0;i<needsEpisodeCatalog.length;i++){
+          throwIfTaskCancelled(task);
+          const row = needsEpisodeCatalog[i];
+          try{
+            await fetchEpisodeCatalog(row, token || '');
+          }catch(e){
+            if(/\bHTTP 404\b/.test(String(e?.message || e))) row.episode_catalog_missing_at = nowISO();
+            if(i < 8) log('syncLog',`章节表缓存失败 ${row.subject_id}：${e.message || e}`);
+          }
+          run.episode_catalog_completed = i + 1;
+          setProgress(catalogStart + (i + 1) / needsEpisodeCatalog.length * (100 - catalogStart));
+          if((i+1)%8 === 0) log('syncLog',`Bangumi 章节表进行中：${i+1}/${needsEpisodeCatalog.length}`);
+          if((i+1)%60 === 0 || i+1 === needsEpisodeCatalog.length){
+            await saveState();
+            log('syncLog',`Bangumi 章节表断点已保存：${i+1}/${needsEpisodeCatalog.length}`);
+          }
+          await sleep(35);
+        }
+        await matchTimelineEpisodesToCollections();
       }
       run.details_pending = false;
       run.finished_at = nowISO();
@@ -4528,7 +5495,12 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
     if(!candidates.length){ toast('当前筛选下没有条目'); return; }
     const arr = candidates.filter(c => !c.public_tags_fetched_at);
     if(!arr.length){ toast('当前筛选下的公共标签已经缓存，无需重复拉取'); return; }
-    if(!confirm(`将为当前筛选下尚未缓存的 ${arr.length} 个条目拉取公共标签；已有缓存的条目会跳过。继续吗？`)) return;
+    if(!(await askNonBlockingConfirmation(`将为当前筛选下尚未缓存的 ${arr.length} 个条目拉取公共标签；已有缓存的条目会跳过。`, {title:'刷新公共标签', confirmText:'开始刷新'}))) return;
+    if(!historyLoaded){
+      toast('正在读取本地备份历史…');
+      try{ await ensureHistoryLoaded(); }
+      catch(error){ toast(`无法读取备份历史：${error?.message || error}`); return; }
+    }
     openModal('syncModal'); $('syncLog').textContent=''; setProgress(0);
     if($('syncTitle')) $('syncTitle').textContent = '刷新公共标签';
     if($('syncHelp')) $('syncHelp').textContent = '公共标签来自 Bangumi API，不抓取官网网页；可能与网页标签区的展示数量和顺序略有差异。';
@@ -4669,7 +5641,15 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
     for(const c of Object.values(s.collections || {})) delete c.cover_data_url;
     return s;
   }
-  function manifest(){ const arr=getAllCollections(); return {app:'Bangumi 保管库 PosterWall', schema:10, exported_at:nowISO(), username:state.settings.username||'', collections_count:arr.length, active_count:arr.filter(c=>c.status!=='confirmed_deleted'&&c.status!=='missing_candidate').length, missing_count:arr.filter(c=>c.status==='missing_candidate').length, history_count:state.history.length}; }
+  function timelineCacheForOfflineExport(){
+    const snapshot = normalizeTimelineCache(timelineCache);
+    // These indexes are derived from events when the offline page starts. Omitting
+    // them avoids storing the same timeline data twice in every exported HTML.
+    delete snapshot.marks;
+    delete snapshot.episode_marks;
+    return snapshot;
+  }
+  function manifest(){ const arr=getAllCollections(); return {app:'Bangumi 保管库 PosterWall', schema:10, exported_at:nowISO(), username:state.settings.username||'', collections_count:arr.length, active_count:arr.filter(c=>c.status!=='confirmed_deleted'&&c.status!=='missing_candidate').length, missing_count:arr.filter(c=>c.status==='missing_candidate').length, history_count:historyLoaded ? state.history.length : Number(state.storageMeta?.history_count || 0)}; }
   function buildJson(){ return JSON.stringify({manifest:manifest(), state:safeExportState()}, null, 2); }
   function csvCell(s){ return '"' + String(s ?? '').replace(/"/g,'""') + '"'; }
   function buildCsv(){
@@ -4684,7 +5664,11 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
     for(const c of arr){
       i++;
       if(onProgress) onProgress(i, arr.length, c);
-      if(mode === 'relative' && c.cover_local_file){
+      if(mode === 'no-images'){
+        delete c.cover_data_url;
+        delete c.cover_local_url;
+        delete c.cover_local_file;
+      } else if(mode === 'relative' && c.cover_local_file){
         const file = String(c.cover_local_file).split(/[\\/]/).pop();
         c.cover_local_url = 'images/' + file;
         delete c.cover_data_url;
@@ -4705,7 +5689,9 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
     return arr;
   }
   async function buildOfflineHtml(mode='inline', onProgress){
+    if(!historyLoaded) await ensureHistoryLoaded();
     const offlineState = safeExportState();
+    offlineState.timeline_cache = timelineCacheForOfflineExport();
     offlineState.collections = {};
     for(const c of await enrichExportCollections(mode, onProgress)) offlineState.collections[String(c.subject_id)] = c;
     const payload = JSON.stringify(offlineState).replace(/</g,'\\u003c');
@@ -5114,17 +6100,22 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
     }catch(e){ console.error(e); log('syncLog','导出失败：'+(e?.message||e)); toast('Excel 导出失败，请看日志'); }
   }
 
-  async function exportJson(){ await saveOrDownload(`Bangumi保管库_${safeName(state.settings.username)}_${dateStamp()}.json`, new Blob([buildJson()], {type:'application/json;charset=utf-8'})); }
+  async function exportJson(){
+    if(!historyLoaded) await ensureHistoryLoaded();
+    await saveOrDownload(`Bangumi保管库_${safeName(state.settings.username)}_${dateStamp()}.json`, new Blob([buildJson()], {type:'application/json;charset=utf-8'}));
+  }
   async function exportCsv(){ await saveOrDownload(`Bangumi保管库_${safeName(state.settings.username)}_${dateStamp()}.csv`, new Blob([buildCsv()], {type:'text/csv;charset=utf-8'})); }
   async function exportHtml(){
-    openModal('syncModal'); $('syncTitle').textContent='正在导出单文件离线 HTML'; $('syncHelp').textContent='单文件 HTML 会把已缓存封面临时转成 Base64；条目很多时会很慢。完整 ZIP 推荐使用真实 images/ 文件夹。'; $('syncLog').textContent=''; setProgress(0);
-    log('syncLog','开始生成离线 HTML...');
-    const html=await buildOfflineHtml('inline',(i,total)=>{ if(i===1 || i%40===0 || i===total){ setProgress(8 + i/Math.max(total,1)*82); log('syncLog',`处理封面 ${i}/${total}`); } });
+    if(!historyLoaded) await ensureHistoryLoaded();
+    openModal('syncModal'); $('syncTitle').textContent='正在导出单文件离线 HTML'; $('syncHelp').textContent='单文件 HTML 不读取或内嵌任何封面，离线时显示占位；需要完整封面请导出 ZIP。'; $('syncLog').textContent=''; setProgress(0);
+    log('syncLog','开始生成无封面单文件 HTML...'); setProgress(18); await sleep(20);
+    const html=await buildOfflineHtml('no-images');
     setProgress(94); log('syncLog','正在保存/触发下载...');
     await saveOrDownload(`Bangumi保管库_离线海报墙_${safeName(state.settings.username)}_${dateStamp()}.html`, new Blob([html], {type:'text/html;charset=utf-8'}));
     setProgress(100); log('syncLog','离线 HTML 已生成。如果浏览器没有弹出下载，请到 资料库/备份 查看。');
   }
   async function exportZip(){
+    if(!historyLoaded) await ensureHistoryLoaded();
     openModal('syncModal');
     $('syncTitle').textContent='正在导出完整 ZIP';
     $('syncHelp').textContent='完整 ZIP 使用 images/ 真实图片文件。v0.24 已把 Word 改成轻量目录版，并为单独 Excel/Word 导出加入进度日志，避免 1700+ 条目卡在 Word/Excel 生成阶段。请解压 ZIP 后打开 offline-poster-wall.html。';
@@ -5201,11 +6192,11 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
       const crc=crc32(data);
       const local=new Uint8Array(30+nameBytes.length);
       const dv=new DataView(local.buffer);
-      dv.setUint32(0,0x04034b50,true); dv.setUint16(4,20,true); dv.setUint16(6,0,true); dv.setUint16(8,0,true);
+      dv.setUint32(0,0x04034b50,true); dv.setUint16(4,20,true); dv.setUint16(6,0x0800,true); dv.setUint16(8,0,true);
       dv.setUint32(14,crc,true); dv.setUint32(18,data.length,true); dv.setUint32(22,data.length,true); dv.setUint16(26,nameBytes.length,true);
       local.set(nameBytes,30); chunks.push(local,data);
       const cent=new Uint8Array(46+nameBytes.length); const cdv=new DataView(cent.buffer);
-      cdv.setUint32(0,0x02014b50,true); cdv.setUint16(4,20,true); cdv.setUint16(6,20,true);
+      cdv.setUint32(0,0x02014b50,true); cdv.setUint16(4,20,true); cdv.setUint16(6,20,true); cdv.setUint16(8,0x0800,true);
       cdv.setUint32(16,crc,true); cdv.setUint32(20,data.length,true); cdv.setUint32(24,data.length,true); cdv.setUint16(28,nameBytes.length,true); cdv.setUint32(42,offset,true);
       cent.set(nameBytes,46); central.push(cent); offset += local.length + data.length;
       done++; if(onProgress) onProgress(done, entries.length, name);
@@ -5220,8 +6211,8 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
     const enc = new TextEncoder(); const chunks=[]; const central=[]; let offset=0;
     for(const [name,content] of Object.entries(files)){
       const nameBytes=enc.encode(name); const data = content instanceof Uint8Array ? content : enc.encode(String(content)); const crc=crc32(data); const local=new Uint8Array(30+nameBytes.length);
-      const dv=new DataView(local.buffer); dv.setUint32(0,0x04034b50,true); dv.setUint16(4,20,true); dv.setUint16(6,0,true); dv.setUint16(8,0,true); dv.setUint32(14,crc,true); dv.setUint32(18,data.length,true); dv.setUint32(22,data.length,true); dv.setUint16(26,nameBytes.length,true); local.set(nameBytes,30);
-      chunks.push(local,data); const cent=new Uint8Array(46+nameBytes.length); const cdv=new DataView(cent.buffer); cdv.setUint32(0,0x02014b50,true); cdv.setUint16(4,20,true); cdv.setUint16(6,20,true); cdv.setUint32(16,crc,true); cdv.setUint32(20,data.length,true); cdv.setUint32(24,data.length,true); cdv.setUint16(28,nameBytes.length,true); cdv.setUint32(42,offset,true); cent.set(nameBytes,46); central.push(cent); offset += local.length + data.length;
+      const dv=new DataView(local.buffer); dv.setUint32(0,0x04034b50,true); dv.setUint16(4,20,true); dv.setUint16(6,0x0800,true); dv.setUint16(8,0,true); dv.setUint32(14,crc,true); dv.setUint32(18,data.length,true); dv.setUint32(22,data.length,true); dv.setUint16(26,nameBytes.length,true); local.set(nameBytes,30);
+      chunks.push(local,data); const cent=new Uint8Array(46+nameBytes.length); const cdv=new DataView(cent.buffer); cdv.setUint32(0,0x02014b50,true); cdv.setUint16(4,20,true); cdv.setUint16(6,20,true); cdv.setUint16(8,0x0800,true); cdv.setUint32(16,crc,true); cdv.setUint32(20,data.length,true); cdv.setUint32(24,data.length,true); cdv.setUint16(28,nameBytes.length,true); cdv.setUint32(42,offset,true); cent.set(nameBytes,46); central.push(cent); offset += local.length + data.length;
     }
     const centralSize = central.reduce((n,c)=>n+c.length,0); const end=new Uint8Array(22); const edv=new DataView(end.buffer); edv.setUint32(0,0x06054b50,true); edv.setUint16(8,central.length,true); edv.setUint16(10,central.length,true); edv.setUint32(12,centralSize,true); edv.setUint32(16,offset,true);
     return new Blob([...chunks,...central,end], {type:'application/zip'});
@@ -5249,10 +6240,16 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
       imported = {...(core || {}), collections, history:Array.isArray(historyData?.history) ? historyData.history : []};
     }
     if(!imported?.collections) throw new Error('不是有效的 Bangumi 保管库备份 JSON');
-    if(!confirm('导入会替换当前本地资料库。确定继续？')) return;
+    if(!(await askNonBlockingConfirmation('导入会替换当前本地资料库。建议先导出完整 ZIP 或 JSON 留底。', {title:'导入本地数据', confirmText:'确认导入', danger:true}))) return;
     const keepToken = state.settings.token;
     const remember = state.settings.rememberToken;
     state = mergeState(imported);
+    historyDeferred = false;
+    historyLoaded = true;
+    historyLoadError = '';
+    drawerHistoryIndex = null;
+    drawerHistoryIndexSource = null;
+    drawerHistoryIndexLength = -1;
     if(remember){ state.settings.token=keepToken; state.settings.rememberToken=true; }
     await saveState();
     render();
@@ -5333,10 +6330,21 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
     $('resumeSyncBtn').onclick=()=>{ if(activeLongTask && !activeLongTask.finished) openModal('syncModal'); };
     $('cancelSyncBtn').onclick=()=>{ closeModal('syncModal'); toast('任务仍在后台继续，可正常搜索和浏览'); };
     $('stopSyncBtn').onclick=stopLongTask;
-    $('searchInput').oninput=e=>{ resetRenderLimit(); filters.q=e.target.value; renderCards(); };
+    $('searchInput').oninput=e=>{ resetRenderLimit(); filters.q=e.target.value; syncMainSearchClear(); renderCards(); };
+    $('searchClearBtn').onclick=()=>{
+      const input = $('searchInput');
+      if(!input) return;
+      input.value = '';
+      input.dispatchEvent(new Event('input', {bubbles:true}));
+      input.focus({preventScroll:true});
+    };
+    syncMainSearchControl();
     $('typeFilter').onchange=e=>{ resetRenderLimit(); filters.type=Number(e.target.value); filters.tag='全部'; render(); };
     $('sortSelect').onchange=e=>{ resetRenderLimit(); filters.sort=e.target.value; renderCards(); };
-    $('themeBtn').onclick=(e)=>toggleTheme(e);
+    $('themeBtn').onclick=(e)=>{
+      animateThemeButton(effectiveTheme() === 'dark' ? 'light' : 'dark');
+      toggleTheme(e);
+    };
     $('cacheCoversBtn').onclick=cacheCoversCurrent; if($('enrichTagsBtn')) $('enrichTagsBtn').onclick=enrichPublicTagsCurrent; if($('readTimelineBtn')) $('readTimelineBtn').onclick=readAllTimeCapsules;
     $('exportJsonBtn').onclick=exportJson; $('exportCsvBtn').onclick=exportCsv; $('exportHtmlBtn').onclick=exportHtml; $('exportDocxBtn').onclick=exportDocx; $('exportXlsxBtn').onclick=exportXlsx; $('exportZipBtn').onclick=exportZip;
     $('importBtn').onclick=()=> $('importFile').click(); $('importFile').onchange=e=>{ const files=[...e.target.files]; if(files.length) importBackup(files).catch(err=>toast('导入失败：'+err.message)); e.target.value=''; };
@@ -5390,7 +6398,7 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
       setProp('--comment-lines', String(clampNum(state.settings.commentLines, 0, 6, 0)));
       setProp('--ui-border-width', clampNum(state.settings.borderWidth, 0, 4, 1) + 'px');
       setData('borderZero', clampNum(state.settings.borderWidth, 0, 4, 1) === 0 ? 'true' : 'false');
-      const btn = $('themeBtn'); if(btn){ const label = theme === 'dark' ? '浅色' : '深色'; if(btn.innerHTML !== label) btn.innerHTML = label; }
+      syncThemeButton(theme);
     };
     if(!animate || state.settings.motion === 'off' || !document.startViewTransition){ update(); return; }
     const root = document.documentElement;
@@ -5740,7 +6748,7 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
       setProp('--comment-lines', String(clampNum(state.settings.commentLines, 0, 6, 0)));
       setProp('--ui-border-width', clampNum(state.settings.borderWidth, 0, 4, 1) + 'px');
       setData('borderZero', clampNum(state.settings.borderWidth, 0, 4, 1) === 0 ? 'true' : 'false');
-      const btn = $('themeBtn'); if(btn){ const label = theme === 'dark' ? '浅色' : '深色'; if(btn.innerHTML !== label) btn.innerHTML = label; }
+      syncThemeButton(theme);
     };
 
     const freezeTransitions = () => {
@@ -5775,6 +6783,7 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
     root.style.setProperty('--theme-y', y + 'px');
     root.style.setProperty('--theme-r', endRadius + 'px');
 
+    const themeIconMorphVersion = root.classList.contains('theme-icon-vt') ? Number(window.__bvThemeIconMorphVersion) || 0 : 0;
     const transition = document.startViewTransition(update);
     transition.ready.then(() => {
       root.animate({
@@ -5785,6 +6794,12 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
     });
     transition.finished.finally(() => {
       releaseFreeze(false);
+      if(themeIconMorphVersion && Number(window.__bvThemeIconMorphVersion) === themeIconMorphVersion){
+        root.classList.remove('theme-icon-vt');
+        const themeButton = $('themeBtn');
+        if(themeButton?._themeMorphTimer) clearTimeout(themeButton._themeMorphTimer);
+        if(themeButton) themeButton._themeMorphTimer = 0;
+      }
     });
   }
 
@@ -5961,6 +6976,10 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
 
   const __bvCacheCoversCurrentBase = cacheCoversCurrent;
   cacheCoversCurrent = async function(){
+    if(!(await localApiAvailable())){
+      toast('缓存封面到目录需要桌面版本地服务；网页版无法写入本地目录');
+      return;
+    }
     await __bvCacheCoversCurrentBase();
     try{
       const chars = await loadProfileCharactersIfNeeded(false);
@@ -7037,7 +8056,7 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
       const path = desc.path || `images/profile/${bvImagePathSafe(desc.cacheId)}.${baseExt}`;
       desc.onRelative?.(path);
       window.__bvExportProfileMediaFiles = window.__bvExportProfileMediaFiles || [];
-      window.__bvExportProfileMediaFiles.push({path, url:source || desc.remoteUrl, dataUrl:desc.dataUrl || ''});
+      window.__bvExportProfileMediaFiles.push({path, url:source || desc.remoteUrl, localUrl:desc.localUrl || '', localFile:desc.localFile || '', dataUrl:desc.dataUrl || ''});
       return {path, url:source || desc.remoteUrl};
     }
     async function bvEnrichExportProfileAssets(offlineState, mode){
@@ -7095,40 +8114,140 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
       return offlineState;
     }
 
+    function bvUseRemoteProfileMediaForSingleFile(offlineState){
+      const profile = offlineState.profile || {};
+      const firstRemote = values => values.map(value=>String(value || '').trim()).find(value=>/^https?:\/\//i.test(value)) || '';
+      const avatarRemote = firstRemote([
+        profile.avatar_remote_url, profile.avatar_url, profile.avatar,
+        profile.raw?.avatar?.large, profile.raw?.avatar?.medium, profile.raw?.avatar?.small,
+        profile.raw?.me?.avatar?.large, profile.raw?.me?.avatar?.medium, profile.raw?.me?.avatar?.small
+      ]);
+      if(avatarRemote) profile.avatar = avatarRemote;
+      delete profile.avatar_data_url;
+      delete profile.avatar_local_url;
+      delete profile.avatar_local_file;
+      delete profile.local_avatar;
+
+      const listKeys = ['characters','characterCollections','character_items','character_collections','persons','personCollections','people','realPersons','monoPersons'];
+      for(const key of listKeys){
+        if(!Array.isArray(profile[key])) continue;
+        for(const item of profile[key]){
+          const images = item?.images || {};
+          const remote = firstRemote([item?.image_url, item?.image, images.grid, images.medium, images.small, images.large]);
+          if(remote){ item.image = remote; item.image_url = remote; }
+          delete item.image_data_url;
+          delete item.image_local_url;
+          delete item.image_local_file;
+          delete item.local_image;
+        }
+      }
+      offlineState.profile = profile;
+      return offlineState;
+    }
+
     const __bvBaseBuildOfflineHtml = buildOfflineHtml;
     buildOfflineHtml = async function(mode='inline', onProgress){
       const offlineState = safeExportState();
+      offlineState.timeline_cache = timelineCacheForOfflineExport();
       offlineState.collections = {};
       const enrichedCollections = await enrichExportCollections(mode, onProgress);
       for(const c of enrichedCollections) offlineState.collections[String(c.subject_id)] = c;
-      await bvEnrichExportProfileAssets(offlineState, mode);
+      if(mode !== 'no-images') await bvEnrichExportProfileAssets(offlineState, mode);
+      else { bvUseRemoteProfileMediaForSingleFile(offlineState); window.__bvExportProfileMediaFiles = []; }
       const payload = JSON.stringify(offlineState).replace(/</g,'\\u003c');
       const cloned = document.documentElement.cloneNode(true);
+      cloned.classList.add('bangumi-offline-export');
+      cloned.classList.remove('electron-exact-effect','bangumi-desktop-shell','bangumi-native-controls','bangumi-window-maximized');
+      cloned.querySelector('#bangumi-desktop-titlebar')?.remove();
+      const readonlyPill = cloned.querySelector('.sync-explain');
+      if(readonlyPill){ readonlyPill.textContent = '离线只读'; readonlyPill.title = '此页面只用于浏览导出时保存的数据'; }
+      const settingsHead = cloned.querySelector('#settingsModal .settings-head');
+      if(settingsHead){
+        const title = settingsHead.querySelector('h2'); if(title) title.textContent = '个性化设置';
+        const help = settingsHead.querySelector('p'); if(help) help.textContent = '调整显示细节、主题与字体、卡片和动效；离线页面不会连接账号或修改备份数据。';
+      }
+      const settingsApply = cloned.querySelector('#saveSettingsBtn'); if(settingsApply) settingsApply.textContent = '应用设置';
       cloned.querySelectorAll('.show,.closing').forEach(el => el.classList.remove('show','closing'));
       const drawer = cloned.querySelector('#drawer'); if(drawer) drawer.innerHTML = '';
       const profile = cloned.querySelector('#profilePanel'); if(profile) profile.innerHTML = '';
       cloned.querySelectorAll('.sync-log').forEach(el => { el.textContent = ''; });
       const toastEl = cloned.querySelector('#toast'); if(toastEl) toastEl.textContent = '';
+      const storageEl = cloned.querySelector('#portableStatus');
+      if(storageEl) storageEl.textContent = mode === 'no-images' ? '存储：单文件离线备份 · 无封面 · 只读' : '存储：完整离线备份 · 只读';
       let page = '<!doctype html>\n' + cloned.outerHTML;
-      const inject = `<script>window.BANGUMI_VAULT_OFFLINE_STATE=${payload};<\/script>`;
+      const inject = `<script>window.BANGUMI_VAULT_OFFLINE_MODE=${JSON.stringify(mode)};window.BANGUMI_VAULT_OFFLINE_STATE=${payload};<\/script>`;
       page = page.replace('<script>\n(() => {', inject + '\n<script>\n(() => {');
       return page;
     };
 
+    async function bvReadExportMediaBytes(item){
+      if(item?.dataUrl) return bvDataUrlBytes(item.dataUrl);
+      const fileName = String(item?.localFile || '').split(/[\\/]/).pop();
+      const candidates = [item?.localUrl, item?.url, fileName ? `/images/${fileName}` : ''].filter(Boolean);
+      const tried = new Set();
+      for(const candidate of candidates){
+        for(const url of [candidate, rewriteImageUrl(candidate)]){
+          const key = String(url || '').trim();
+          if(!key || tried.has(key)) continue;
+          tried.add(key);
+          try{
+            const response = await fetch(key, {cache:'no-store'});
+            if(response.ok) return new Uint8Array(await response.arrayBuffer());
+          }catch(e){}
+        }
+      }
+      return null;
+    }
+
+    function bvProfileMediaFilesForZip(){
+      const profile = state.profile || {};
+      const items = [];
+      const avatarSource = bvProfileAvatarSource(profile);
+      if(avatarSource){
+        const ext = bvExportExtFrom(profile.avatar_local_file || avatarSource, 'jpg');
+        items.push({
+          path:`images/profile/avatar.${ext}`,
+          url:profile.avatar_local_url || avatarSource,
+          localUrl:profile.avatar_local_url || '',
+          localFile:profile.avatar_local_file || '',
+          dataUrl:profile.avatar_data_url || (/^data:/i.test(avatarSource) ? avatarSource : '')
+        });
+      }
+      for(const character of bvProfileCharactersForExport(profile)){
+        const id = character.id || character.character_id || bvImagePathSafe(character.name || 'character');
+        const source = bvCharacterSource(character);
+        if(!source) continue;
+        const ext = bvExportExtFrom(character.image_local_file || source, 'jpg');
+        items.push({
+          path:`images/profile/characters/${bvImagePathSafe(id)}.${ext}`,
+          url:character.image_local_url || source,
+          localUrl:character.image_local_url || '',
+          localFile:character.image_local_file || '',
+          dataUrl:character.image_data_url || (/^data:/i.test(source) ? source : '')
+        });
+      }
+      return items;
+    }
+
     const __bvBaseCollectCachedImageFiles = collectCachedImageFiles;
     collectCachedImageFiles = async function(arr,onProgress){
       const files = await __bvBaseCollectCachedImageFiles(arr,onProgress);
-      const extra = window.__bvExportProfileMediaFiles || [];
-      let added = 0;
+      const extraByPath = new Map();
+      for(const item of [...(window.__bvExportProfileMediaFiles || []), ...bvProfileMediaFilesForZip()]){
+        if(!item?.path) continue;
+        extraByPath.set(item.path, {...(extraByPath.get(item.path) || {}), ...item});
+      }
+      const extra = [...extraByPath.values()];
+      let added = 0, failed = 0;
       for(const item of extra){
         if(!item?.path || files[item.path]) continue;
-        let media = null;
-        if(item.dataUrl) media = await bvFetchMedia(item.dataUrl);
-        else if(item.url) media = await bvFetchMedia(item.url);
-        if(media?.bytes?.length){ files[item.path] = media.bytes; added++; }
-        if(added % 6 === 0) await sleep(0);
+        const bytes = await bvReadExportMediaBytes(item);
+        if(bytes?.length){ files[item.path] = bytes; added++; }
+        else failed++;
+        if((added + failed) % 6 === 0) await sleep(0);
       }
       if(added){ try{ log('syncLog', `  已加入 ${added} 个用户头像/角色图片文件。`); }catch(e){} }
+      if(failed){ try{ log('syncLog', `  有 ${failed} 个用户头像/角色图片未能加入 ZIP。`, 'warn'); }catch(e){} }
       return files;
     };
 
@@ -8127,7 +9246,7 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
       return __bvFinalSyncCustomControls.apply(this, arguments);
     };
     function bvFinalSyncMainControls(){
-      if($('searchInput')) $('searchInput').value = filters.q || '';
+      syncMainSearchControl();
       if($('typeFilter')) $('typeFilter').value = String(filters.type || 0);
       if($('sortSelect')) $('sortSelect').value = filters.sort || 'updated_desc';
       bvFinalSetDropdown('typeDropdown', filters.type || 0, bvFinalDropdownLabelForType(filters.type || 0));
@@ -9955,7 +11074,7 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
       const item = ([label, value])=>`<div>${esc(label)}</div><div>${esc(value)}</div>`;
       const head = rows.slice(0, 7).map(item).join('');
       const rest = rows.slice(7).map(item).join('');
-      const extra = rest ? `<div class="bv35-subject-extra" aria-hidden="true"><div class="kv">${rest}</div></div><button type="button" class="btn small bv35-subject-toggle" data-bv35-subject-toggle aria-expanded="false"><span data-bv35-toggle-label>显示全部资料</span><b class="bv35-subject-toggle-icon" aria-hidden="true">+</b></button>` : '';
+      const extra = rest ? `<div class="bv35-subject-extra" aria-hidden="true"><div class="kv">${rest}</div></div><button type="button" class="btn small bv35-subject-toggle" data-bv35-subject-toggle aria-expanded="false"><span data-bv35-toggle-label>显示全部资料</span><b class="bv35-subject-toggle-icon" aria-hidden="true"></b></button>` : '';
       return `<div class="info-card bv35-subject-info"><h3>条目资料</h3><div class="kv">${head}</div>${extra}</div>`;
     }
 
@@ -9975,11 +11094,14 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
 
     async function bv35FetchSubject(row){
       const id = String(row?.subject_id || '');
-      if(!id || bv35Pending.has(id)) return bv35Pending.get(id);
+      const signal = drawerNetworkSignalFor(id) || undefined;
+      const existing = bv35Pending.get(id);
+      if(!id) return null;
+      if(existing?.signal === signal) return existing.promise;
       const job = (async()=>{
+        const token = readToken() || '';
         try{
-          const token = readToken() || '';
-          const subject = await apiFetch(`/v0/subjects/${encodeURIComponent(id)}`, token);
+          const subject = await apiFetch(`/v0/subjects/${encodeURIComponent(id)}`, token, {signal});
           const images = subject?.images || {};
           row.infobox = Array.isArray(subject?.infobox) ? subject.infobox : (row.infobox || []);
           row.summary = subject?.summary || subject?.short_summary || row.summary || '';
@@ -9996,20 +11118,20 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
           row.subject_detail_fetched_at = nowISO();
           delete row.subject_detail_missing_at;
           delete row.subject_detail_missing_auth_revision;
-          await saveState();
+          await saveState({history:false});
           return true;
         }catch(error){
           if(/\bHTTP 404\b/.test(String(error?.message || error)) && String(token || '').trim()){
             row.subject_detail_missing_at = nowISO();
             row.subject_detail_missing_auth_revision = SUBJECT_LOOKUP_AUTH_REVISION;
-            await saveState();
+            await saveState({history:false});
           }
           return false;
         }finally{
-          bv35Pending.delete(id);
+          if(bv35Pending.get(id)?.promise === job) bv35Pending.delete(id);
         }
       })();
-      bv35Pending.set(id, job);
+      bv35Pending.set(id, {promise:job, signal});
       return job;
     }
 
@@ -10057,9 +11179,7 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
       extra.setAttribute('aria-hidden', expanded ? 'false' : 'true');
       toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
       const label = toggle.querySelector('[data-bv35-toggle-label]');
-      const icon = toggle.querySelector('.bv35-subject-toggle-icon');
       if(label) label.textContent = expanded ? '收起资料' : '显示全部资料';
-      if(icon) icon.textContent = expanded ? '−' : '+';
     });
 
     document.addEventListener('transitionend', event=>{
@@ -10110,18 +11230,40 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
         color:var(--text);
       }
       #drawer .bv35-subject-toggle-icon{
-        display:grid;
-        place-items:center;
-        width:15px;
-        height:15px;
+        position:relative;
+        display:inline-block;
+        flex:0 0 16px;
+        width:16px;
+        height:16px;
+        box-sizing:border-box;
         border:1px solid currentColor;
         border-radius:50%;
-        font-size:14px;
-        font-weight:500;
-        line-height:1;
+        font-size:0;
+        line-height:0;
+      }
+      #drawer .bv35-subject-toggle-icon::before,
+      #drawer .bv35-subject-toggle-icon::after{
+        content:"";
+        position:absolute;
+        left:50%;
+        top:50%;
+        width:7px;
+        height:1px;
+        border-radius:999px;
+        background:currentColor;
+        transform:translate(-50%,-50%);
+        transform-origin:center;
+        transition:opacity .18s ease,transform .22s cubic-bezier(.16,1,.3,1);
+      }
+      #drawer .bv35-subject-toggle-icon::after{
+        transform:translate(-50%,-50%) rotate(90deg);
+      }
+      #drawer .bv35-subject-info.is-expanded .bv35-subject-toggle-icon::after{
+        opacity:0;
+        transform:translate(-50%,-50%) rotate(90deg) scaleX(.2);
       }
       @media (prefers-reduced-motion:reduce){
-        #drawer .bv35-subject-extra{transition:none}
+        #drawer .bv35-subject-extra,#drawer .bv35-subject-toggle-icon::before,#drawer .bv35-subject-toggle-icon::after{transition:none}
       }
     `;
     document.head.appendChild(style);
@@ -10137,6 +11279,7 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
     }
 
     async function bv36RestoreMarkTimes(){
+      if(!historyLoaded) return false;
       const latestBySubject = new Map();
       const history = Array.isArray(state.history) ? [...state.history] : [];
       history.sort((a,b)=>Date.parse(a?.created_at || 0) - Date.parse(b?.created_at || 0));
@@ -10159,7 +11302,12 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
         changed = true;
       });
       if(changed) await saveState();
+      return changed;
     }
+
+    window.addEventListener('bv-history-loaded', ()=>{
+      runWhenIdle(()=>bv36RestoreMarkTimes().catch(error=>console.warn('mark time restore failed', error)), 2400);
+    });
 
     const bv36BaseLoadState = loadState;
     loadState = async function(){
@@ -10169,7 +11317,494 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
     };
   })();
 
-  async function init(){ await loadState(); bindEvents(); installProfilePillReliableTrigger(); refreshSegmentedControls(); window.matchMedia?.('(prefers-color-scheme: dark)').addEventListener?.('change',()=>{ if((state.settings.themeMode||'dark')==='system') applyAppearance(true); }); render(); }
+  /* v0.31.2: compact sort controls, centred confirmations, and continued-season episode labels. */
+  (function(){
+    const sortFields = [
+      {value:'updated', label:'按更新时间'},
+      {value:'rate', label:'按我的评分'},
+      {value:'bgm_score', label:'按 Bangumi 评分'},
+      {value:'public_tag_heat', label:'按公共标签热度'},
+      {value:'name', label:'按标题 A-Z'},
+      {value:'first_seen', label:'按首次备份'}
+    ];
+    const legacySorts = {
+      updated_desc:{field:'updated', direction:'desc'}, updated_asc:{field:'updated', direction:'asc'},
+      rate_desc:{field:'rate', direction:'desc'}, rate_asc:{field:'rate', direction:'asc'},
+      bgm_score_desc:{field:'bgm_score', direction:'desc'}, public_tag_heat_desc:{field:'public_tag_heat', direction:'desc'},
+      name_asc:{field:'name', direction:'asc'}, first_seen_desc:{field:'first_seen', direction:'desc'}
+    };
+    function normalizeSortState(){
+      const old = legacySorts[String(filters.sort || '')];
+      if(old){ filters.sort = old.field; filters.sortDirection = old.direction; }
+      if(!sortFields.some(item=>item.value === filters.sort)) filters.sort = 'updated';
+      if(filters.sortDirection !== 'asc' && filters.sortDirection !== 'desc') filters.sortDirection = filters.sort === 'name' ? 'asc' : 'desc';
+      return {field:filters.sort, direction:filters.sortDirection};
+    }
+    function directionDescription(field, direction){
+      const ascending = direction === 'asc';
+      if(field === 'updated' || field === 'first_seen') return ascending ? '旧到新' : '新到旧';
+      if(field === 'name') return ascending ? 'A 到 Z' : 'Z 到 A';
+      return ascending ? '低到高' : '高到低';
+    }
+    const timestamp = row => Date.parse(row?.bangumi_updated_at || '') || 0;
+    const bgmScore = row => {
+      const score = Number(row?.bgm_score ?? row?.raw?.subject?.rating?.score ?? row?.raw?.subject?.score ?? 0);
+      return Number.isFinite(score) && score > 0 ? score : 0;
+    };
+    const publicTagHeat = row => {
+      const tags = publicTagsOf(row);
+      const heat = tags.reduce((sum, tag)=>sum + Math.max(0, Number(tag?.count || 0) || 0), 0);
+      return heat || tags.length;
+    };
+    const __bv311VisibleCollections = visibleCollections;
+    visibleCollections = function(){
+      const rows = __bv311VisibleCollections.apply(this, arguments);
+      const {field, direction} = normalizeSortState();
+      const sign = direction === 'asc' ? 1 : -1;
+      const latestFirst = (a,b)=>timestamp(b) - timestamp(a);
+      const comparePositive = (a,b,getter)=>{
+        const av = Math.max(0, Number(getter(a)) || 0), bv = Math.max(0, Number(getter(b)) || 0);
+        const hasA = av > 0, hasB = bv > 0;
+        if(hasA !== hasB) return hasA ? -1 : 1;
+        if(!hasA) return latestFirst(a,b);
+        return (av - bv) * sign || latestFirst(a,b);
+      };
+      return [...rows].sort((a,b)=>{
+        if(field === 'rate') return comparePositive(a,b,row=>row.rate);
+        if(field === 'bgm_score') return comparePositive(a,b,bgmScore);
+        if(field === 'public_tag_heat') return comparePositive(a,b,publicTagHeat);
+        if(field === 'name') return (a.title || a.name || '').localeCompare(b.title || b.name || '', 'zh-Hans-CN') * sign || latestFirst(a,b);
+        const dateOf = field === 'first_seen' ? row => Date.parse(row?.first_seen_at || '') || 0 : timestamp;
+        return (dateOf(a) - dateOf(b)) * sign || latestFirst(a,b);
+      });
+    };
+    function syncSortDirectionControl(){
+      const {field, direction} = normalizeSortState();
+      const label = sortFields.find(item=>item.value === field)?.label || '按更新时间';
+      const labelEl = $('sortDropdownLabel');
+      if(labelEl) labelEl.textContent = label;
+      const button = $('sortDirectionBtn');
+      if(button){
+        button.innerHTML = '<span class="sort-direction-icon" aria-hidden="true"><span class="sort-arrow sort-arrow-up"></span><span class="sort-arrow sort-arrow-down"></span></span>';
+        button.classList.toggle('is-ascending', direction === 'asc');
+        button.title = `当前：${directionDescription(field, direction)}，点击切换`;
+        button.setAttribute('aria-label', button.title);
+      }
+    }
+    function rebuildSortControls(){
+      const {field} = normalizeSortState();
+      const menu = $('sortDropdown')?.querySelector('.select-menu');
+      if(menu) menu.innerHTML = sortFields.map(item=>`<button type="button" data-value="${item.value}"${item.value === field ? ' class="active"' : ''}>${item.label}</button>`).join('');
+      const select = $('sortSelect');
+      if(select){
+        select.innerHTML = sortFields.map(item=>`<option value="${item.value}">${item.label}</option>`).join('');
+        select.value = field;
+      }
+      let directionButton = $('sortDirectionBtn');
+      if(!directionButton){
+        directionButton = document.createElement('button');
+        directionButton.id = 'sortDirectionBtn';
+        directionButton.type = 'button';
+        directionButton.className = 'btn small sort-direction-toggle';
+        $('sortDropdown')?.after(directionButton);
+      }
+      directionButton.onclick = ()=>{
+        filters.sortDirection = normalizeSortState().direction === 'asc' ? 'desc' : 'asc';
+        resetRenderLimit();
+        syncSortDirectionControl();
+        renderCards();
+      };
+      syncSortDirectionControl();
+    }
+    rebuildSortControls();
+    syncCustomControls = function(){
+      setupDropdown('typeDropdown','typeFilter','typeDropdownLabel',(value)=>{ resetRenderLimit(); filters.type=Number(value); filters.tag='全部'; render(); });
+      setupDropdown('sortDropdown','sortSelect','sortDropdownLabel',(value)=>{
+        const changed = normalizeSortState().field !== value;
+        filters.sort = value;
+        if(changed) filters.sortDirection = value === 'name' ? 'asc' : 'desc';
+        resetRenderLimit();
+        syncSortDirectionControl();
+        renderCards();
+      });
+      syncSortDirectionControl();
+    };
+    if(typeof bvFinalSyncMainControls === 'function'){
+      const __bv312SyncMainControls = bvFinalSyncMainControls;
+      bvFinalSyncMainControls = function(){
+        normalizeSortState();
+        const result = __bv312SyncMainControls.apply(this, arguments);
+        syncSortDirectionControl();
+        return result;
+      };
+    }
+    const __bv312RenderCards = renderCards;
+    renderCards = async function(){
+      normalizeSortState();
+      syncSortDirectionControl();
+      return __bv312RenderCards.apply(this, arguments);
+    };
+    const episodeDrawerHydrationPending = new Map();
+    const EPISODE_COLLECTION_STATUS_TTL_MS = 90 * 1000;
+    function episodeCollectionStatusNeedsRefresh(row){
+      const fetchedAt = Date.parse(String(row?.episode_collection_fetched_at || ''));
+      return Number(row?.episode_collection_status_schema || 0) < EPISODE_COLLECTION_STATUS_SCHEMA
+        || !Number.isFinite(fetchedAt)
+        || Date.now() - fetchedAt >= EPISODE_COLLECTION_STATUS_TTL_MS;
+    }
+    function refreshOpenDrawerEpisodePanels(key, row){
+      const drawer = $('drawer');
+      if(!drawer?.classList.contains('show') || String(activeDrawerId || '') !== String(key)) return false;
+      const scroller = drawer.querySelector('.detail-v8');
+      const hero = drawer.querySelector('.detail-hero-content');
+      const anchor = hero?.querySelector('.detail-pills-v8');
+      if(!hero || !anchor) return false;
+      const scrollTop = Number(scroller?.scrollTop) || 0;
+      const scrollLeft = Number(scroller?.scrollLeft) || 0;
+      const expandedTypes = new Set(
+        [...hero.querySelectorAll('.episode-special-group.is-expanded')]
+          .map(group=>String(group.querySelector('.episode-special-group-label b')?.textContent || '').trim())
+          .filter(Boolean)
+      );
+      const template = document.createElement('template');
+      template.innerHTML = episodeProgressHTML(row);
+      window.__bvHideEpisodeInfoPopover?.();
+      [...hero.children]
+        .filter(node=>node.matches?.('.episode-strip-v9,.episode-specials-v9'))
+        .forEach(node=>node.remove());
+      anchor.after(template.content);
+      if(expandedTypes.size){
+        hero.querySelectorAll('.episode-special-group').forEach(group=>{
+          const type = String(group.querySelector('.episode-special-group-label b')?.textContent || '').trim();
+          if(!expandedTypes.has(type)) return;
+          group.classList.add('is-expanded');
+          const button = group.querySelector('[data-episode-special-toggle]');
+          button?.setAttribute('aria-expanded','true');
+          const label = button?.querySelector('[data-special-toggle-label]');
+          if(label) label.textContent = '收起';
+        });
+      }
+      const restoreScroll = ()=>{
+        if(!scroller?.isConnected) return;
+        scroller.scrollTop = Math.min(scrollTop, Math.max(0, scroller.scrollHeight - scroller.clientHeight));
+        scroller.scrollLeft = scrollLeft;
+      };
+      restoreScroll();
+      if(scrollTop > 0){
+        requestAnimationFrame(()=>{
+          if(scroller?.isConnected && scroller.scrollTop < 1) restoreScroll();
+        });
+      }
+      return true;
+    }
+    const __bv312OpenDrawer = openDrawer;
+    openDrawer = async function(id){
+      const result = await __bv312OpenDrawer.apply(this, arguments);
+      const key = String(id || '');
+      const row = state.collections?.[key];
+      if(!row || String(activeDrawerId || '') !== key || !$('drawer')?.classList.contains('show') || Number(row.subject_type) !== 2 || window.BANGUMI_VAULT_OFFLINE_STATE) return result;
+      const signal = drawerNetworkSignalFor(key) || undefined;
+      let pendingEntry = episodeDrawerHydrationPending.get(key);
+      if(!pendingEntry || pendingEntry.signal !== signal){
+        let pending;
+        pending = (async()=>{
+            let updated = false;
+            let catalogRequested = false;
+            try{
+              if(!hasEpisodeCatalog(row) && !row.episode_catalog_missing_at){
+                catalogRequested = true;
+                await fetchEpisodeCatalog(row, readToken() || '', {signal});
+                updated = true;
+            }
+            // Time capsules are a history stream, so rapid clicks can collapse
+            // into one event. This authenticated endpoint is the source of
+            // truth for the current state of every regular and special episode.
+              const token = readToken() || '';
+              if(hasEpisodeCatalog(row) && token && episodeCollectionStatusNeedsRefresh(row)){
+                await fetchEpisodeCollectionStatuses(row, token, {signal});
+              updated = true;
+            }
+            if(updated){
+              // Opening one detail must not rescan every local collection. A
+              // catalogue refresh only changes this row's timeline mapping.
+              matchTimelineEpisodesForCollection(row);
+              await saveState({history:false});
+            }
+            return updated;
+          }catch(error){
+            if(catalogRequested && /\bHTTP 404\b/.test(String(error?.message || error))){
+              row.episode_catalog_missing_at = nowISO();
+              await saveState({history:false});
+            }
+            return false;
+          }finally{
+            if(episodeDrawerHydrationPending.get(key)?.promise === pending) episodeDrawerHydrationPending.delete(key);
+          }
+        })();
+        pendingEntry = {promise:pending, signal};
+        episodeDrawerHydrationPending.set(key, pendingEntry);
+      }
+      const pending = pendingEntry.promise;
+      pending.then(async updated=>{
+        if(!updated || String(activeDrawerId || '') !== key || !$('drawer')?.classList.contains('show')) return;
+        if(refreshOpenDrawerEpisodePanels(key, row)) return;
+        const previousScroller = $('drawer')?.querySelector('.detail-v8');
+        const previousTop = Number(previousScroller?.scrollTop) || 0;
+        const previousLeft = Number(previousScroller?.scrollLeft) || 0;
+        await __bv312OpenDrawer.call(this, key);
+        const nextScroller = $('drawer')?.querySelector('.detail-v8');
+        if(nextScroller && String(activeDrawerId || '') === key){
+          nextScroller.scrollTop = Math.min(previousTop, Math.max(0, nextScroller.scrollHeight - nextScroller.clientHeight));
+          nextScroller.scrollLeft = previousLeft;
+        }
+      }).catch(()=>{});
+      return result;
+    };
+
+    const style = document.createElement('style');
+    style.id = 'bv311-interaction-style';
+    style.textContent = `
+      body{-webkit-user-select:none;user-select:none}
+      button,[role="button"],.selectish,.nav,.tag-chip,.pill,.card,.status-ribbon,.rate,.ep-cell-v9,.profile-tab,.profile-score-row,.segmented{-webkit-user-select:none;user-select:none}
+      input,textarea,select,option,.longtext,.comment,.sync-log,.help,.notice,.hist,.kv>div:nth-child(even),.profile-bio,.profile-small,.footer-note,.local-note,.action-confirm-message,.detail-hero-content h2{-webkit-user-select:text;user-select:text}
+      input,textarea,.longtext,.comment,.sync-log,.help,.notice,.hist,.kv>div:nth-child(even),.profile-bio,.profile-small,.footer-note,.local-note,.action-confirm-message,.detail-hero-content h2{cursor:text}
+      ::selection{background:rgba(255,126,182,.34);color:inherit}
+      .episode-info-popover{position:fixed;z-index:260;left:0;top:0;display:grid;gap:3px;width:max-content;max-width:min(340px,calc(100vw - 20px));padding:9px 11px 9px 14px;border:var(--ui-border-width) solid color-mix(in srgb,var(--a) 34%,rgba(255,255,255,.18));border-radius:13px;background:rgba(11,12,20,.44);box-shadow:0 14px 38px rgba(0,0,0,.30),inset 0 1px 0 rgba(255,255,255,.10);backdrop-filter:blur(22px) saturate(1.12);-webkit-backdrop-filter:blur(22px) saturate(1.12);color:var(--text);opacity:0;visibility:hidden;transform:translateY(3px) scale(.985);transform-origin:center bottom;pointer-events:none;word-break:break-word;transition:opacity .07s ease,transform .09s cubic-bezier(.22,1,.36,1),visibility 0s linear .09s}
+      .episode-info-popover::before{content:"";position:absolute;left:7px;top:9px;bottom:9px;width:2px;border-radius:99px;background:var(--a);opacity:.82}
+      .episode-info-popover.show{opacity:1;visibility:visible;transform:none;transition-delay:0s}
+      .episode-info-popover strong{display:block;font-size:11.5px;line-height:1.35;font-weight:920;color:var(--text)}
+      .episode-info-popover span{display:block;font-size:10.5px;line-height:1.48;font-weight:680;color:var(--soft)}
+      [data-theme="light"] .episode-info-popover{background:rgba(255,255,255,.54);border-color:color-mix(in srgb,var(--a) 30%,rgba(54,43,77,.16));box-shadow:0 14px 34px rgba(54,43,77,.14),inset 0 1px 0 rgba(255,255,255,.62)}
+      .action-confirm-popover{position:fixed;z-index:180;left:50%;top:50%;right:auto;width:min(420px,calc(100vw - 32px));padding:15px;border:1px solid color-mix(in srgb,var(--a) 42%,var(--line));border-radius:16px;background:color-mix(in srgb,var(--panel) 94%,#151625);box-shadow:0 20px 54px rgba(0,0,0,.32);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);opacity:0;transform:translate(-50%,-53%) scale(.98);transition:opacity .16s ease,transform .2s cubic-bezier(.2,.8,.2,1)}
+      .action-confirm-popover.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
+      .action-confirm-kicker{font-weight:900;color:var(--text);font-size:14px}
+      .action-confirm-message{margin-top:7px;color:var(--soft);font-size:13px;line-height:1.58}
+      .action-confirm-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}
+      .detail-close-v8{background:rgba(10,11,18,.28)!important;border-color:rgba(255,255,255,.24)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 8px 22px rgba(0,0,0,.18)!important;backdrop-filter:blur(14px) saturate(1.1);-webkit-backdrop-filter:blur(14px) saturate(1.1)}
+      .detail-close-v8:hover{background:rgba(10,11,18,.4)!important}
+      [data-theme="light"] .detail-close-v8{background:rgba(255,255,255,.38)!important;border-color:rgba(54,43,77,.18)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.58),0 8px 20px rgba(54,43,77,.1)!important}
+      [data-theme="light"] .detail-close-v8:hover{background:rgba(255,255,255,.52)!important}
+      html.bangumi-offline-export #syncBtn,
+      html.bangumi-offline-export #fullSyncBtn,
+      html.bangumi-offline-export #resumeSyncBtn,
+      html.bangumi-offline-export #exportBtn,
+      html.bangumi-offline-export #cacheCoversBtn,
+      html.bangumi-offline-export #enrichTagsBtn,
+      html.bangumi-offline-export #readTimelineBtn,
+      html.bangumi-offline-export #profileRefreshBtn,
+      html.bangumi-offline-export [data-cloud-refresh],
+      html.bangumi-offline-export #keepLocalBtn,
+      html.bangumi-offline-export #confirmDeleteBtn,
+      html.bangumi-offline-export #restoreBtn,
+      html.bangumi-offline-export #exportModal,
+      html.bangumi-offline-export #syncModal{display:none!important}
+      html.bangumi-offline-export #settingsModal .settings-panel.account,
+      html.bangumi-offline-export #settingsModal .settings-panel.network-panel,
+      html.bangumi-offline-export #settingsModal .settings-footer-left{display:none!important}
+      html.bangumi-offline-export #settingsModal .settings-card{width:min(1080px,calc(100vw - 32px))!important;height:auto!important;min-height:0!important;max-height:calc(100vh - 32px)!important;aspect-ratio:auto!important;overflow:auto!important}
+      html.bangumi-offline-export #settingsModal .settings-board{grid-template-columns:repeat(3,minmax(0,1fr))!important;grid-template-areas:"display theme motion"!important;grid-template-rows:auto!important;overflow:visible!important}
+      html.bangumi-offline-export #settingsModal .settings-panel.display{grid-area:display!important}
+      html.bangumi-offline-export #settingsModal .settings-panel.theme{grid-area:theme!important}
+      html.bangumi-offline-export #settingsModal .settings-panel.motion{grid-area:motion!important}
+      @media (max-width:980px){html.bangumi-offline-export #settingsModal .settings-board{grid-template-columns:repeat(2,minmax(0,1fr))!important;grid-template-areas:"theme motion" "display display"!important}}
+      @media (max-width:680px){html.bangumi-offline-export #settingsModal .settings-board{grid-template-columns:1fr!important;grid-template-areas:"theme" "motion" "display"!important}}
+      /* Top filters share the compact word-cloud dropdown affordance and grow only with their label. */
+      #typeDropdown .select-trigger,#sortDropdown .select-trigger,.sort-direction-toggle{height:46px!important;min-height:46px!important;box-sizing:border-box}
+      #typeDropdown .select-trigger,#sortDropdown .select-trigger{min-width:0!important;width:fit-content!important;padding:0 13px 0 14px!important;gap:8px!important;white-space:nowrap!important}
+      #typeDropdown .select-trigger .chev,#sortDropdown .select-trigger .chev{display:inline-grid!important;place-items:center!important;width:10px!important;height:10px!important;margin:0!important;border:0!important;font-size:0!important;line-height:0!important;opacity:.72!important;transform:none!important;transition:none!important}
+      #typeDropdown .select-trigger .chev::before,#sortDropdown .select-trigger .chev::before{content:""!important;width:0!important;height:0!important;border:4px solid transparent!important;border-top:5px solid currentColor!important;border-bottom:0!important;transform:translateY(2px)!important;transition:transform .16s ease!important}
+      #typeDropdown.selectish.open .select-trigger .chev,#sortDropdown.selectish.open .select-trigger .chev{transform:none!important}
+      #typeDropdown.selectish.open .select-trigger .chev::before,#sortDropdown.selectish.open .select-trigger .chev::before{transform:translateY(2px) rotate(180deg)!important}
+      .sort-direction-toggle{width:46px;min-width:46px;padding:0;border-radius:16px;display:inline-grid;place-items:center;flex:none}
+      .sort-direction-icon{position:relative;width:18px!important;height:18px!important;display:grid!important;grid-template-columns:repeat(2,8px)!important;gap:2px!important;align-items:center!important;transform:none!important}
+      .sort-direction-icon::before,.sort-direction-icon::after{content:none!important}
+      .sort-arrow{position:relative;display:block;width:8px;height:18px;color:var(--muted);opacity:.42;transition:color .16s ease,opacity .16s ease,filter .16s ease}
+      .sort-arrow::before{content:"";position:absolute;left:3px;width:2px;height:10px;border-radius:99px;background:currentColor}
+      .sort-arrow::after{content:"";position:absolute;left:0;width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent}
+      .sort-arrow-up::before{top:6px}.sort-arrow-up::after{top:1px;border-bottom:5px solid currentColor}
+      .sort-arrow-down::before{top:2px}.sort-arrow-down::after{bottom:1px;border-top:5px solid currentColor}
+      .sort-direction-toggle.is-ascending .sort-arrow-up,.sort-direction-toggle:not(.is-ascending) .sort-arrow-down{color:color-mix(in srgb,var(--a) 86%,var(--text));opacity:1;filter:drop-shadow(0 0 5px color-mix(in srgb,var(--a) 45%,transparent))}
+      .sort-direction-toggle.is-ascending .sort-direction-icon{transform:none!important}
+      /* Regular episodes are the primary progress surface: numbered and readable. */
+      .episode-grid-v9,.episode-grid-v9.too-many,.episode-strip-v9.compact .episode-grid-v9{display:inline-grid!important;grid-template-columns:repeat(var(--ep-cols,24),26px)!important;gap:4px!important;padding:10px 12px!important;width:max-content!important;max-width:100%!important;overflow:auto!important;scrollbar-width:none!important;background:rgba(8,9,16,.22)!important;border-color:rgba(255,255,255,.18)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.06)!important;backdrop-filter:blur(20px) saturate(1.08)!important;-webkit-backdrop-filter:blur(20px) saturate(1.08)!important}
+      .episode-grid-v9::-webkit-scrollbar{display:none!important}
+      [data-theme="light"] .episode-grid-v9,[data-theme="light"] .episode-grid-v9.too-many,[data-theme="light"] .episode-strip-v9.compact .episode-grid-v9{background:rgba(255,255,255,.36)!important;border-color:rgba(54,43,77,.16)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.46)!important}
+      .ep-cell-v9{display:grid!important;place-items:center!important;width:26px!important;height:20px!important;min-width:26px!important;border-radius:7px!important;background:rgba(255,255,255,.13)!important;color:rgba(255,255,255,.82)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.08)!important;font-variant-numeric:tabular-nums;transition:transform .16s ease,background .16s ease,border-color .16s ease,box-shadow .16s ease!important}
+      .episode-grid-v9.too-many .ep-cell-v9,.episode-strip-v9.compact .ep-cell-v9{display:grid!important;place-items:center!important;width:26px!important;height:20px!important;min-width:26px!important;border-radius:7px!important}
+      .ep-cell-v9 b{font-size:8.5px;font-weight:880;line-height:1;letter-spacing:0;color:inherit}
+      .ep-cell-v9.is-long-number b{font-size:7px}
+      [data-theme="light"] .ep-cell-v9{background:rgba(54,43,77,.10)!important;color:rgba(54,43,77,.78)!important;box-shadow:inset 0 0 0 1px rgba(54,43,77,.06)!important}
+      .ep-cell-v9.watched{background:linear-gradient(135deg,var(--a),var(--b))!important;color:#fff!important;box-shadow:0 0 11px color-mix(in srgb,var(--a) 30%,transparent)!important}
+      .ep-cell-v9:hover{transform:translateY(-1px) scale(1.08)!important;z-index:2}
+      .ep-cell-v9.state-wish{background:linear-gradient(135deg,color-mix(in srgb,var(--c) 84%,white),var(--c))!important;color:#fff!important;box-shadow:0 0 12px color-mix(in srgb,var(--c) 36%,transparent)!important}
+      .ep-cell-v9.state-abandoned{background:linear-gradient(135deg,#ff8a8a,#ef5e78)!important;color:#fff!important;box-shadow:0 0 12px rgba(239,94,120,.3)!important}
+      .ep-cell-v9.state-cleared{background:transparent!important;color:var(--muted)!important;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--muted) 74%,transparent)!important}
+      @media (max-width:980px){.episode-grid-v9,.episode-grid-v9.too-many,.episode-strip-v9.compact .episode-grid-v9{grid-template-columns:repeat(var(--ep-cols-mobile,18),25px)!important}.ep-cell-v9,.episode-grid-v9.too-many .ep-cell-v9,.episode-strip-v9.compact .ep-cell-v9{width:25px!important;min-width:25px!important}}
+      @media (max-width:720px){.episode-grid-v9,.episode-grid-v9.too-many,.episode-strip-v9.compact .episode-grid-v9{grid-template-columns:repeat(var(--ep-cols-narrow,12),24px)!important;gap:3px!important;padding:9px 10px!important}.ep-cell-v9,.episode-grid-v9.too-many .ep-cell-v9,.episode-strip-v9.compact .ep-cell-v9{width:24px!important;min-width:24px!important;height:19px!important}}
+
+      /* Special episodes are secondary: high contrast, summarized, expandable. */
+      .episode-specials-v9{display:grid;gap:8px;margin-top:12px;width:var(--episode-special-width,760px);max-width:100%;padding:10px 12px;border:var(--ui-border-width) solid rgba(255,255,255,.18);border-radius:16px;background:rgba(8,9,16,.14);box-shadow:inset 0 1px 0 rgba(255,255,255,.06);backdrop-filter:blur(22px) saturate(1.08);-webkit-backdrop-filter:blur(22px) saturate(1.08)}
+      [data-theme="light"] .episode-specials-v9{background:rgba(255,255,255,.28);border-color:rgba(54,43,77,.16);box-shadow:inset 0 1px 0 rgba(255,255,255,.42)}
+      .episode-specials-title{font-size:12px;font-weight:900;letter-spacing:0;color:var(--text)}
+      .episode-special-groups{display:grid;gap:8px}
+      .episode-special-group{--episode-special-indent:47px;display:grid;gap:6px;min-width:0}
+      .episode-special-group-head{display:flex;align-items:center;gap:7px;min-height:25px}
+      .episode-special-group-label{display:inline-flex;align-items:center;justify-content:center;min-width:40px;height:25px;padding:0 8px;border:0;border-left:3px solid color-mix(in srgb,var(--a) 72%,var(--text));border-radius:3px 8px 8px 3px;background:linear-gradient(90deg,color-mix(in srgb,var(--a) 18%,rgba(255,255,255,.08)),rgba(255,255,255,.025));letter-spacing:0;white-space:nowrap}
+      .episode-special-group-label b{font-size:10.5px;font-weight:920;color:color-mix(in srgb,var(--a) 82%,var(--text))}
+      .episode-special-summary{margin-right:auto;color:var(--soft);font-size:10.5px;font-weight:760;white-space:nowrap}
+      .episode-special-toggle{display:inline-flex;align-items:center;gap:5px;height:25px;padding:0 8px;border:var(--ui-border-width) solid color-mix(in srgb,var(--a) 24%,var(--line));border-radius:8px;background:rgba(255,255,255,.07);color:var(--soft);font-size:10px;font-weight:820;white-space:nowrap;transition:background .16s ease,border-color .16s ease,color .16s ease}
+      .episode-special-toggle::after{content:"";width:0;height:0;border-left:3.5px solid transparent;border-right:3.5px solid transparent;border-top:4px solid currentColor;transition:transform .18s ease}
+      .episode-special-group.is-expanded .episode-special-toggle::after{transform:rotate(180deg)}
+      .episode-special-toggle:hover{background:color-mix(in srgb,var(--a) 13%,rgba(255,255,255,.08));border-color:color-mix(in srgb,var(--a) 46%,var(--line));color:var(--text)}
+      .episode-special-list{display:flex;flex-wrap:wrap;gap:6px;min-width:0}
+      .episode-special-primary{display:grid;grid-template-rows:1fr;margin-left:var(--episode-special-indent);opacity:1;transform:none;transition:grid-template-rows .28s cubic-bezier(.22,1,.36,1) .08s,opacity .16s ease .12s,transform .26s cubic-bezier(.22,1,.36,1) .08s}
+      .episode-special-primary-inner{min-height:0;overflow:hidden}
+      .episode-special-group.is-expanded .episode-special-primary{grid-template-rows:0fr;opacity:0;transform:translateY(-4px);pointer-events:none;transition-delay:0s}
+      .episode-special-overflow{display:grid;grid-template-rows:0fr;margin-top:-6px;margin-left:var(--episode-special-indent);opacity:0;transform:translateY(-5px);pointer-events:none;transition:grid-template-rows .34s cubic-bezier(.22,1,.36,1),opacity .2s ease,transform .3s cubic-bezier(.22,1,.36,1)}
+      .episode-special-overflow-inner{min-height:0;overflow:hidden;padding-top:0;border-top:var(--ui-border-width) solid transparent;transition:padding-top .3s cubic-bezier(.22,1,.36,1),border-color .2s ease}
+      .episode-special-overflow-list{padding-bottom:1px}
+      .episode-special-overflow-list .episode-special-chip{opacity:0;transform:translateY(-4px) scale(.98);transition:opacity .18s ease,transform .26s cubic-bezier(.22,1,.36,1),border-color .16s ease,background .16s ease}
+      .episode-special-group.is-expanded .episode-special-overflow{grid-template-rows:1fr;opacity:1;transform:none;pointer-events:auto;transition-delay:.03s}
+      .episode-special-group.is-expanded .episode-special-overflow-inner{padding-top:8px;border-top-color:color-mix(in srgb,var(--line) 76%,transparent)}
+      .episode-special-group.is-expanded .episode-special-overflow-list .episode-special-chip{opacity:1;transform:none;transition-delay:.05s}
+      .episode-special-chip{display:inline-flex;align-items:center;gap:5px;min-height:25px;padding:0 8px;border:var(--ui-border-width) solid color-mix(in srgb,var(--line) 88%,var(--text));border-radius:8px;background:rgba(255,255,255,.11);color:var(--text);font-size:11.5px;font-weight:760;line-height:1;white-space:nowrap;transition:transform .16s ease,border-color .16s ease,background .16s ease}
+      .episode-special-chip b{font-size:11.5px;font-weight:880;color:var(--text)}.episode-special-chip small{font-size:10px;font-weight:760;color:var(--soft)}
+      .episode-special-chip.is-unwatched{min-width:27px;justify-content:center;padding:0 7px;background:rgba(255,255,255,.075);border-color:color-mix(in srgb,var(--line) 88%,transparent)}.episode-special-chip.is-unwatched b{color:var(--soft)}
+      [data-theme="light"] .episode-special-chip{background:rgba(255,255,255,.82);border-color:rgba(54,43,77,.20)}
+      [data-theme="light"] .episode-special-chip.is-unwatched{background:rgba(54,43,77,.08);border-color:rgba(54,43,77,.16)}[data-theme="light"] .episode-special-chip.is-unwatched b{color:rgba(54,43,77,.76)}
+      .episode-special-chip.state-watched{border-color:color-mix(in srgb,var(--a) 52%,var(--line));background:color-mix(in srgb,var(--a) 20%,rgba(255,255,255,.10))}.episode-special-chip.state-watched small{color:color-mix(in srgb,var(--a) 72%,var(--text))}
+      .episode-special-chip.state-wish{border-color:color-mix(in srgb,var(--c) 54%,var(--line));background:color-mix(in srgb,var(--c) 18%,rgba(255,255,255,.10))}.episode-special-chip.state-wish small{color:color-mix(in srgb,var(--c) 78%,var(--text))}
+      .episode-special-chip.state-abandoned{border-color:rgba(239,94,120,.58);background:rgba(239,94,120,.16)}.episode-special-chip.state-abandoned small{color:#d94b68}
+      .episode-special-chip.state-cleared{opacity:.72;border-style:dashed}
+      .episode-special-chip:hover{transform:translateY(-1px);border-color:color-mix(in srgb,var(--a) 58%,var(--line))}
+      @media (max-width:980px){.episode-specials-v9{width:var(--episode-special-width-mobile,var(--episode-special-width,760px))}}
+      @media (max-width:720px){.episode-specials-v9{width:var(--episode-special-width-narrow,var(--episode-special-width-mobile,var(--episode-special-width,760px)));padding:9px}.episode-special-group{--episode-special-indent:40px}.episode-special-group-head{flex-wrap:wrap}.episode-special-summary{margin-right:0}.episode-special-toggle{margin-left:auto}}
+      @media (max-width:720px){.action-confirm-popover{left:50%;top:50%;right:auto;bottom:auto;width:calc(100vw - 32px)}}
+      @media (prefers-reduced-motion:reduce){.action-confirm-popover,.episode-info-popover{transition:none}}
+    `;
+    document.head.appendChild(style);
+
+    if(!window.__bvEpisodeInfoPopoverInstalled){
+      window.__bvEpisodeInfoPopoverInstalled = true;
+      const selector = '.ep-cell-v9[data-episode-tip],.episode-special-chip[data-episode-tip]';
+      const popover = document.createElement('div');
+      popover.className = 'episode-info-popover';
+      popover.setAttribute('role','tooltip');
+      popover.setAttribute('aria-hidden','true');
+      document.body.appendChild(popover);
+      let activeTarget = null;
+      const hideEpisodeInfo = ()=>{
+        activeTarget = null;
+        popover.classList.remove('show');
+        popover.setAttribute('aria-hidden','true');
+      };
+      const positionEpisodeInfo = target=>{
+        if(!target?.isConnected) return hideEpisodeInfo();
+        const targetRect = target.getBoundingClientRect();
+        const popoverRect = popover.getBoundingClientRect();
+        const edge = 8;
+        const gap = 7;
+        let left = targetRect.left + (targetRect.width - popoverRect.width) / 2;
+        let top = targetRect.top - popoverRect.height - gap;
+        if(top < edge) top = targetRect.bottom + gap;
+        left = Math.max(edge, Math.min(left, window.innerWidth - popoverRect.width - edge));
+        top = Math.max(edge, Math.min(top, window.innerHeight - popoverRect.height - edge));
+        popover.style.left = `${Math.round(left)}px`;
+        popover.style.top = `${Math.round(top)}px`;
+      };
+      const showEpisodeInfo = target=>{
+        const raw = String(target?.dataset?.episodeTip || '').trim();
+        if(!raw) return hideEpisodeInfo();
+        activeTarget = target;
+        const parts = raw.split(/\s*·\s*/).filter(Boolean);
+        const heading = document.createElement('strong');
+        heading.textContent = parts.shift() || raw;
+        popover.replaceChildren(heading);
+        if(parts.length){
+          const detail = document.createElement('span');
+          detail.textContent = parts.join(' · ');
+          popover.appendChild(detail);
+        }
+        popover.style.left = '0px';
+        popover.style.top = '0px';
+        popover.classList.add('show');
+        popover.setAttribute('aria-hidden','false');
+        positionEpisodeInfo(target);
+      };
+      document.addEventListener('pointerover', event=>{
+        const target = event.target?.closest?.(selector);
+        if(!target || !target.closest('#drawer')) return;
+        if(event.relatedTarget && target.contains(event.relatedTarget)) return;
+        showEpisodeInfo(target);
+      });
+      document.addEventListener('pointerout', event=>{
+        const target = event.target?.closest?.(selector);
+        if(!target || target !== activeTarget) return;
+        if(event.relatedTarget && target.contains(event.relatedTarget)) return;
+        hideEpisodeInfo();
+      });
+      document.addEventListener('pointerdown', hideEpisodeInfo, true);
+      document.addEventListener('scroll', hideEpisodeInfo, true);
+      window.addEventListener('resize', hideEpisodeInfo);
+      window.__bvHideEpisodeInfoPopover = hideEpisodeInfo;
+    }
+
+    if(!window.__bvEpisodeSpecialToggleInstalled){
+      window.__bvEpisodeSpecialToggleInstalled = true;
+      document.addEventListener('click', event=>{
+        const button = event.target?.closest?.('[data-episode-special-toggle]');
+        if(!button || !button.closest('#drawer')) return;
+        event.preventDefault();
+        const group = button.closest('.episode-special-group');
+        if(!group) return;
+        const expanded = !group.classList.contains('is-expanded');
+        group.classList.toggle('is-expanded', expanded);
+        button.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+        const label = button.querySelector('[data-special-toggle-label]');
+        if(label) label.textContent = expanded ? '收起' : `更多 ${button.dataset.hiddenCount || ''}`.trim();
+      });
+    }
+
+    let drawerCloseTimer = 0;
+    let drawerTransitionVersion = 0;
+    const __bv313OpenDrawer = openDrawer;
+    openDrawer = async function(id){
+      drawerTransitionVersion++;
+      beginDrawerNetwork(String(id || ''));
+      if(drawerCloseTimer){ clearTimeout(drawerCloseTimer); drawerCloseTimer = 0; }
+      $('drawerMask')?.classList.remove('closing');
+      $('drawer')?.classList.remove('closing');
+      return __bv313OpenDrawer.apply(this, arguments);
+    };
+    closeDrawer = function(){
+      const mask = $('drawerMask'), drawer = $('drawer');
+      if(!mask || !drawer || !drawer.classList.contains('show')) return;
+      const version = ++drawerTransitionVersion;
+      // Mark the drawer inactive before its exit animation. Background detail
+      // work can then finish quietly instead of repainting a closing panel.
+      activeDrawerId = null;
+      drawerOpenGeneration++;
+      cancelDrawerNetwork();
+      if(drawerCloseTimer) clearTimeout(drawerCloseTimer);
+      drawer.classList.add('closing');
+      mask.classList.add('closing');
+      const ms = state.settings.motion === 'off' ? 0 : 190;
+      drawerCloseTimer = setTimeout(()=>{
+        if(version !== drawerTransitionVersion) return;
+        mask.classList.remove('show','closing');
+        drawer.classList.remove('show','closing');
+        drawerCloseTimer = 0;
+      }, ms);
+    };
+  })();
+
+  async function init(){
+    await loadState();
+    bindEvents(); installProfilePillReliableTrigger(); refreshSegmentedControls();
+    window.matchMedia?.('(prefers-color-scheme: dark)').addEventListener?.('change',()=>{ if((state.settings.themeMode||'dark')==='system') applyAppearance(true); });
+    render(); warmDrawerHistoryIndex();
+    if(vaultIntegrityIssues.length) setTimeout(()=>toast(`本地资料库检测到 ${vaultIntegrityIssues.length} 项不一致，已停止自动覆盖；建议从导出备份恢复。`), 420);
+  }
   init();
 })();
 
