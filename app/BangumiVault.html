@@ -5345,6 +5345,7 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
     runtimeToken = token;
     if($('tokenInput')) $('tokenInput').value = token;
     state.settings.oauthLastToken = token;
+    if(state.settings.rememberToken) state.settings.token = token;
     state.settings.oauthExpiresAt = Date.now() + Number(payload.expires_in || 604800) * 1000;
     if(Number(payload.user_id || 0)) state.settings.oauthUserId = Number(payload.user_id);
     // refresh_token 与 token 同样受“记住 token”开关保护；新响应会轮换 refresh_token。
@@ -5353,13 +5354,23 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
   }
   async function completeOAuthLogin(code, stateVal){
     log('loginLog', '正在用授权码换取 Access Token…');
-    const payload = await oauthTokenRequest({grant_type:'authorization_code', client_id:OAUTH_CLIENT_ID, client_secret:OAUTH_CLIENT_SECRET, code, redirect_uri:oauthRedirectUri(), state:stateVal});
+    const payload = await oauthTokenRequest({grant_type:'authorization_code', client_id:OAUTH_CLIENT_ID, client_secret:OAUTH_CLIENT_SECRET, code, redirect_uri:oauthRedirectUri()});
     applyOAuthToken(payload);
-    log('loginLog', 'Token 换取成功，正在验证账号…');
-    await testLogin();
+    // 与参考脚本一致：OAuth 兑换返回的就是 Bearer 型 access_token，可直接调用 /v0 API。
+    const hours = Math.round(Number(payload.expires_in || 604800) / 3600);
+    const preview = String(payload.access_token).slice(0, 8) + '…';
+    const extra = [payload.token_type ? `类型 ${payload.token_type}` : '', Number(payload.user_id || 0) ? `用户 ${payload.user_id}` : `有效期约 ${hours} 小时`].filter(Boolean).join('，');
+    log('loginLog', `已获取 Access Token（${preview}，${extra}）`);
+    try{
+      await testLogin();
+      toast('OAuth2 授权登录成功');
+    }catch(error){
+      // Token 已获取并回填；仅验证请求失败（网络波动等），稍后可手动重试。
+      log('loginLog', 'Access Token 已保存，但账号验证未通过：' + (error?.message || error) + '。可稍后点击「测试登录」重试');
+      toast('OAuth2 Token 已获取，账号验证失败可稍后重试');
+    }
     await saveState({collections:false, history:false});
     updateOAuthStatus();
-    toast('OAuth2 授权登录成功');
   }
   async function handleOAuthRedirect(){
     let code = '', oauthState = '', oauthError = '';
