@@ -2820,6 +2820,12 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
               <div class="remember-row"><label class="checkbox-row"><input type="checkbox" id="rememberTokenInput" /> <span>记住 token</span></label><span class="help">不勾选时不写入本地资料库。</span></div>
             </div>
           </div>
+          <div class="field oauth-field">
+            <label>Bangumi OAuth2 授权登录（可选）</label>
+            <div class="token-actions"><button class="btn small good" id="oauthLoginBtn">通过 OAuth2 登录</button><button class="btn small" id="oauthCopyRedirectBtn">复制回调地址</button></div>
+            <div class="help" id="oauthStatus">未授权。</div>
+            <div class="help">使用本应用注册的 App ID 跳转 bgm.tv 授权页，登录后自动回填 Access Token 并支持过期自动刷新。需先在 bgm.tv 应用管理中把回调地址设置为上方显示的地址。</div>
+          </div>
         </section>
 
         <section class="settings-panel display">
@@ -2940,7 +2946,7 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
   function statusMapForNav(){ return filters.type ? (STATUS_BY_TYPE[Number(filters.type)] || STATUS) : STATUS; }
   const SUBJECT_LABEL = {1:'书籍',2:'动画',3:'音乐',4:'游戏',6:'三次元'};
   const BGM_TYPE_PATH = {1:'book',2:'anime',3:'music',4:'game',6:'real'};
-  const DEFAULT_STATE = {schema:17, settings:{username:'', token:'', rememberToken:false, theme:'system', themeMode:'system', recentMonths:3, fontFamily:'system', customFont:'', cardSize:'standard', pageSize:120, commentLines:0, motion:'full', accentColor:'sakura', borderWidth:1, apiBase:'', imageProxyBase:'', siteBase:'', customApiPrivate:false, profileIntro:''}, collections:{}, history:[], runs:[], profile:null, storageMeta:null};
+  const DEFAULT_STATE = {schema:17, settings:{username:'', token:'', rememberToken:false, theme:'system', themeMode:'system', recentMonths:3, fontFamily:'system', customFont:'', cardSize:'standard', pageSize:120, commentLines:0, motion:'full', accentColor:'sakura', borderWidth:1, apiBase:'', imageProxyBase:'', siteBase:'', customApiPrivate:false, profileIntro:'', oauthRefreshToken:'', oauthExpiresAt:0, oauthUserId:0, oauthLastToken:''}, collections:{}, history:[], runs:[], profile:null, storageMeta:null};
   let state = structuredClone(DEFAULT_STATE);
   let filters = {status:0, tag:'全部', type:0, q:'', sort:'updated_desc'};
   let tagSearchOpen = false;
@@ -3476,7 +3482,7 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
   }
   function stateCoreForStorage(){
     const settings = {...state.settings};
-    if(!settings.rememberToken) settings.token = '';
+    if(!settings.rememberToken){ settings.token = ''; settings.oauthRefreshToken = ''; settings.oauthLastToken = ''; }
     return {schema:17, settings, runs:state.runs, profile:state.profile, storageMeta:state.storageMeta || null};
   }
   const RAW_SUBJECT_FIELDS = ['id','type','name','name_cn','date','eps','volumes','score','rating','rank','summary','short_summary','images','tags','infobox'];
@@ -5258,11 +5264,113 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
     }catch(e){ log('loginLog','失败：' + e.message); toast('登录失败：' + e.message); }
   }
   function readToken(){ return $('tokenInput').value.trim() || runtimeToken || state.settings.token || ''; }
-  async function saveSettingsFromUI(){
-    state.settings.username = $('usernameInput').value.trim(); state.settings.recentMonths = Math.max(1, Math.min(120, Number($('recentMonthsInput')?.value || 3))); state.settings.pageSize = clampNum($('pageSizeInput')?.value, 8, 360, 120); state.settings.commentLines = clampNum($('commentLinesInput')?.value, 0, 6, 0); state.settings.borderWidth = clampNum($('borderWidthInput')?.value, 0, 4, 1); state.settings.customFont = String($('customFontInput')?.value || '').trim(); state.settings.apiBase = cleanBaseUrl($('apiBaseInput')?.value || '', ''); state.settings.imageProxyBase = cleanBaseUrl($('imageProxyBaseInput')?.value || '', ''); state.settings.siteBase = cleanBaseUrl($('siteBaseInput')?.value || '', ''); state.settings.customApiPrivate = !!$('customApiPrivateInput')?.checked; state.settings.rememberToken = $('rememberTokenInput').checked; state.settings.profileIntro = String($('profileIntroInput')?.value || '').trim(); state.settings.token = state.settings.rememberToken ? $('tokenInput').value.trim() : '';
-    runtimeToken = $('tokenInput').value.trim() || runtimeToken; applyAppearance(false); refreshSegmentedControls(); resetRenderLimit(); await saveState({collections:false, history:false}); render(); toast(window.BANGUMI_VAULT_OFFLINE_STATE ? '个性化设置已应用' : '设置已保存');
+  /* ---- Bangumi OAuth2 授权登录（纯前端授权码流程） ---- */
+  function oauthSupported(){ return location.protocol === 'https:' || location.protocol === 'http:'; }
+  function oauthRedirectUri(){ return location.origin + location.pathname; }
+  function updateOAuthStatus(){
+    const el = $('oauthStatus'); if(!el) return;
+    if(!oauthSupported()){ el.textContent = '当前环境不支持 OAuth2 回调（file:// 或桌面端），请继续使用 Access Token 登录。'; return; }
+    const redirect = oauthRedirectUri();
+    const exp = Number(state.settings.oauthExpiresAt || 0);
+    const expText = exp ? `，${new Date(exp).toLocaleString()} 过期` : '';
+    el.innerHTML = state.settings.oauthRefreshToken
+      ? `<span>已授权（用户 ${esc(String(state.settings.oauthUserId || ''))}${esc(expText)}）。回调地址：${esc(redirect)}</span>`
+      : `<span>未授权。请先在 bgm.tv 应用管理中把回调地址设置为：${esc(redirect)}</span>`;
   }
-  function fillSettingsUI(){ $('tokenInput').value = state.settings.rememberToken ? (state.settings.token||'') : runtimeToken; $('usernameInput').value = state.settings.username||''; if($('recentMonthsInput')) $('recentMonthsInput').value = state.settings.recentMonths || 3; if($('pageSizeInput')) $('pageSizeInput').value = pageSize(); if($('commentLinesInput')) $('commentLinesInput').value = clampNum(state.settings.commentLines,0,6,0); if($('customFontInput')) $('customFontInput').value = state.settings.customFont || ''; if($('borderWidthInput')) $('borderWidthInput').value = clampNum(state.settings.borderWidth,0,4,1); if($('apiBaseInput')) $('apiBaseInput').value = state.settings.apiBase || ''; if($('imageProxyBaseInput')) $('imageProxyBaseInput').value = state.settings.imageProxyBase || ''; if($('siteBaseInput')) $('siteBaseInput').value = state.settings.siteBase || ''; if($('profileIntroInput')) $('profileIntroInput').value = state.settings.profileIntro || ''; if($('customApiPrivateInput')) $('customApiPrivateInput').checked = !!state.settings.customApiPrivate; $('rememberTokenInput').checked = !!state.settings.rememberToken; refreshSegmentedControls(); }
+  function beginOAuthLogin(){
+    if(!oauthSupported()){ toast('当前环境不支持 OAuth2，请在网页版使用'); return; }
+    const stateVal = 'bv_' + Math.random().toString(36).slice(2) + String(Date.now()).toString(36);
+    try{ sessionStorage.setItem('bgmOAuthState', stateVal); }catch{}
+    const url = `${OAUTH_AUTHORIZE_URL}?client_id=${encodeURIComponent(OAUTH_CLIENT_ID)}&response_type=code&redirect_uri=${encodeURIComponent(oauthRedirectUri())}&state=${encodeURIComponent(stateVal)}`;
+    location.href = url;
+  }
+  // bgm.tv 的 token 接口可能不带 CORS 头：先直连，失败时依次尝试公共 CORS 中转。
+  async function oauthTokenRequest(params){
+    const body = new URLSearchParams(params).toString();
+    const targets = [
+      OAUTH_TOKEN_URL,
+      'https://api.cors.lol/?url=' + encodeURIComponent(OAUTH_TOKEN_URL),
+      'https://corsproxy.io/?url=' + encodeURIComponent(OAUTH_TOKEN_URL)
+    ];
+    let lastError = null;
+    for(const target of targets){
+      try{
+        const response = await fetch(target, {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body});
+        const raw = await response.text();
+        let payload = null; try{ payload = JSON.parse(raw); }catch{}
+        if(response.ok && payload?.access_token) return payload;
+        throw Object.assign(new Error(payload ? String(payload.error || payload.message || '授权服务器返回错误') : `HTTP ${response.status}`), {fatal:true});
+      }catch(error){
+        if(error?.fatal) throw error;
+        lastError = error;
+      }
+    }
+    throw lastError || new Error('无法连接授权服务器');
+  }
+  function applyOAuthToken(payload){
+    const token = String(payload.access_token || '').trim();
+    if(!token) throw new Error('授权响应缺少 access_token');
+    runtimeToken = token;
+    if($('tokenInput')) $('tokenInput').value = token;
+    state.settings.oauthLastToken = token;
+    state.settings.oauthExpiresAt = Date.now() + Number(payload.expires_in || 604800) * 1000;
+    if(Number(payload.user_id || 0)) state.settings.oauthUserId = Number(payload.user_id);
+    // refresh_token 与 token 同样受“记住 token”开关保护；新响应会轮换 refresh_token。
+    if(state.settings.rememberToken && payload.refresh_token) state.settings.oauthRefreshToken = String(payload.refresh_token);
+    return token;
+  }
+  async function completeOAuthLogin(code, stateVal){
+    log('loginLog', '正在用授权码换取 Access Token…');
+    const payload = await oauthTokenRequest({grant_type:'authorization_code', client_id:OAUTH_CLIENT_ID, client_secret:OAUTH_CLIENT_SECRET, code, redirect_uri:oauthRedirectUri(), state:stateVal});
+    applyOAuthToken(payload);
+    log('loginLog', 'Token 换取成功，正在验证账号…');
+    await testLogin();
+    await saveState({collections:false, history:false});
+    updateOAuthStatus();
+    toast('OAuth2 授权登录成功');
+  }
+  async function handleOAuthRedirect(){
+    let code = '', oauthState = '', oauthError = '';
+    try{
+      const params = new URLSearchParams(location.search);
+      code = params.get('code') || '';
+      oauthState = params.get('state') || '';
+      oauthError = params.get('error') || '';
+    }catch{ return; }
+    if(!code && !oauthError) return;
+    let expected = '';
+    try{ expected = sessionStorage.getItem('bgmOAuthState') || ''; sessionStorage.removeItem('bgmOAuthState'); }catch{}
+    history.replaceState(null, '', location.pathname + location.hash);
+    if(oauthError){ log('loginLog', 'OAuth2 授权被拒绝：' + oauthError); toast('OAuth2 授权失败：' + oauthError); return; }
+    if(!expected || !oauthState || oauthState !== expected){ log('loginLog', 'OAuth2 state 校验失败，请重新发起授权'); toast('OAuth2 state 校验失败，请重试'); return; }
+    try{ await completeOAuthLogin(code, oauthState); }
+    catch(error){
+      const msg = error?.message || error;
+      log('loginLog', 'OAuth2 登录失败：' + msg);
+      toast('OAuth2 登录失败：' + msg);
+    }
+  }
+  async function maybeRefreshOAuthToken(){
+    const refreshToken = state.settings.oauthRefreshToken;
+    if(!refreshToken) return;
+    const expiresAt = Number(state.settings.oauthExpiresAt || 0);
+    if(!expiresAt || Date.now() < expiresAt - 3600e3) return;
+    // 只在当前生效的 token 确实来自 OAuth 时才自动刷新。
+    const current = readToken();
+    if(!current || current !== state.settings.oauthLastToken) return;
+    try{
+      const payload = await oauthTokenRequest({grant_type:'refresh_token', client_id:OAUTH_CLIENT_ID, client_secret:OAUTH_CLIENT_SECRET, refresh_token:refreshToken, redirect_uri:oauthRedirectUri()});
+      applyOAuthToken(payload);
+      await saveState({collections:false, history:false});
+      updateOAuthStatus();
+      console.info('[Bangumi Vault] OAuth2 Access Token 已自动刷新');
+    }catch(error){ console.warn('[Bangumi Vault] OAuth2 自动刷新失败：', error); }
+  }
+  async function saveSettingsFromUI(){
+    state.settings.username = $('usernameInput').value.trim(); state.settings.recentMonths = Math.max(1, Math.min(120, Number($('recentMonthsInput')?.value || 3))); state.settings.pageSize = clampNum($('pageSizeInput')?.value, 8, 360, 120); state.settings.commentLines = clampNum($('commentLinesInput')?.value, 0, 6, 0); state.settings.borderWidth = clampNum($('borderWidthInput')?.value, 0, 4, 1); state.settings.customFont = String($('customFontInput')?.value || '').trim(); state.settings.apiBase = cleanBaseUrl($('apiBaseInput')?.value || '', ''); state.settings.imageProxyBase = cleanBaseUrl($('imageProxyBaseInput')?.value || '', ''); state.settings.siteBase = cleanBaseUrl($('siteBaseInput')?.value || '', ''); state.settings.customApiPrivate = !!$('customApiPrivateInput')?.checked; state.settings.rememberToken = $('rememberTokenInput').checked; state.settings.profileIntro = String($('profileIntroInput')?.value || '').trim(); state.settings.token = state.settings.rememberToken ? $('tokenInput').value.trim() : ''; if(!state.settings.rememberToken){ state.settings.oauthRefreshToken = ''; state.settings.oauthLastToken = ''; }
+    runtimeToken = $('tokenInput').value.trim() || runtimeToken; applyAppearance(false); refreshSegmentedControls(); resetRenderLimit(); updateOAuthStatus(); await saveState({collections:false, history:false}); render(); toast(window.BANGUMI_VAULT_OFFLINE_STATE ? '个性化设置已应用' : '设置已保存');
+  }
+  function fillSettingsUI(){ $('tokenInput').value = state.settings.rememberToken ? (state.settings.token||'') : runtimeToken; $('usernameInput').value = state.settings.username||''; if($('recentMonthsInput')) $('recentMonthsInput').value = state.settings.recentMonths || 3; if($('pageSizeInput')) $('pageSizeInput').value = pageSize(); if($('commentLinesInput')) $('commentLinesInput').value = clampNum(state.settings.commentLines,0,6,0); if($('customFontInput')) $('customFontInput').value = state.settings.customFont || ''; if($('borderWidthInput')) $('borderWidthInput').value = clampNum(state.settings.borderWidth,0,4,1); if($('apiBaseInput')) $('apiBaseInput').value = state.settings.apiBase || ''; if($('imageProxyBaseInput')) $('imageProxyBaseInput').value = state.settings.imageProxyBase || ''; if($('siteBaseInput')) $('siteBaseInput').value = state.settings.siteBase || ''; if($('profileIntroInput')) $('profileIntroInput').value = state.settings.profileIntro || ''; if($('customApiPrivateInput')) $('customApiPrivateInput').checked = !!state.settings.customApiPrivate; $('rememberTokenInput').checked = !!state.settings.rememberToken; refreshSegmentedControls(); updateOAuthStatus(); }
 
 
   async function syncRecent(){ return syncCollections('recent'); }
@@ -5636,6 +5744,8 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
   function safeExportState(){
     const s=structuredClone(state);
     delete s.settings.token;
+    delete s.settings.oauthRefreshToken;
+    delete s.settings.oauthLastToken;
     s.settings.rememberToken=false;
     // v0.20: 常规 JSON 备份不携带 base64 图片，避免 state 变巨大；离线 HTML 会临时内嵌。
     for(const c of Object.values(s.collections || {})) delete c.cover_data_url;
@@ -11802,6 +11912,10 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
     await loadState();
     bindEvents(); installProfilePillReliableTrigger(); refreshSegmentedControls();
     window.matchMedia?.('(prefers-color-scheme: dark)').addEventListener?.('change',()=>{ if((state.settings.themeMode||'dark')==='system') applyAppearance(true); });
+    if(oauthSupported()){
+      await handleOAuthRedirect();
+      maybeRefreshOAuthToken();
+    }
     render(); warmDrawerHistoryIndex();
     if(vaultIntegrityIssues.length) setTimeout(()=>toast(`本地资料库检测到 ${vaultIntegrityIssues.length} 项不一致，已停止自动覆盖；建议从导出备份恢复。`), 420);
   }
