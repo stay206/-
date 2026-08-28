@@ -51,6 +51,18 @@ https://stay206.github.io/-/
 - 清理浏览器缓存或网站数据可能会清空本地数据；
 - 建议定期使用应用内“导出备份”保存自己的数据。
 
+### 自建代理（解决在线版 OAuth2 登录 / 同步跨域问题）
+
+bgm.tv 的 OAuth2 授权码兑换接口不带 CORS 响应头，浏览器无法直接完成兑换；公共 CORS 中转也大多限流或失效。可靠方案是部署一个自己的免费 Cloudflare Worker 反向代理（每天 10 万次请求额度）：
+
+1. 注册/登录 [Cloudflare Dashboard](https://dash.cloudflare.com/)；
+2. 「Workers 和 Pages」→「创建应用程序」→「创建 Worker」，名字随意（如 `bgm-proxy`）；
+3. 点「编辑代码」，用仓库根目录 [cloudflare-worker.js](cloudflare-worker.js) 的完整内容替换示例代码，点「部署」；
+4. 复制 Worker 地址（形如 `https://bgm-proxy.你的子域.workers.dev`）；
+5. 打开 Bangumi 保管库 → 设置 → 高级网络设置 → 「API 地址」填入该地址，勾选「登录和收藏同步也使用自定义 API」并保存。
+
+之后 OAuth2 登录的授权码兑换、Token 刷新和收藏同步都会经过你自己的代理。请勿公开分享该地址（代理不带鉴权）。
+
 ## 名称说明
 
 - 应用显示名：**Bangumi 保管库**

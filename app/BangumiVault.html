@@ -5338,7 +5338,7 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
         lastError = error;
       }
     }
-    throw lastError || new Error('无法连接授权服务器');
+    throw new Error('全部兑换通道均失败（' + (lastError?.message || '网络受限') + '）。推荐部署免费 Cloudflare Worker 代理后把地址填入「API 地址」（见 README「自建代理」），部署后重新授权即可');
   }
   function applyOAuthToken(payload){
     const token = String(payload.access_token || '').trim();
