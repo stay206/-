@@ -5321,6 +5321,8 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
     try{
       const res = await fetch(`${cfg.api}/contents/${CLOUD_PATH}?ref=${encodeURIComponent(cfg.branch)}`, {headers: githubHeaders(cfg)});
       if(res.status === 200) sha = (await res.json())?.sha || '';
+      else if(res.status === 401) throw new Error('GitHub Token 无效或已过期（401）');
+      else if(res.status === 403) throw new Error('GitHub 拒绝访问（403）：请确认 Token 具有本仓库 Contents 权限');
       else if(res.status !== 404) throw new Error('查询云端文件失败：HTTP ' + res.status);
     }catch(error){ if(!/Failed to fetch|NetworkError/i.test(String(error?.message))) throw error; }
     const put = await fetch(`${cfg.api}/contents/${CLOUD_PATH}`, {
