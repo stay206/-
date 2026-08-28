@@ -5290,7 +5290,8 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
     const redirect = oauthRedirectUri();
     const exp = Number(state.settings.oauthExpiresAt || 0);
     const expText = exp ? `，${new Date(exp).toLocaleString()} 过期` : '';
-    el.innerHTML = state.settings.oauthRefreshToken
+    const authorized = !!state.settings.oauthRefreshToken || (!!state.settings.oauthLastToken && exp > Date.now());
+    el.innerHTML = authorized
       ? `<span>已授权（用户 ${esc(String(state.settings.oauthUserId || ''))}${esc(expText)}）。回调地址：${esc(redirect)}</span>`
       : `<span>未授权。请先在 bgm.tv 应用管理中把回调地址设置为：${esc(redirect)}</span>`;
   }
@@ -5371,6 +5372,7 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
     }
     await saveState({collections:false, history:false});
     updateOAuthStatus();
+    try{ fillSettingsUI(); openModal('settingsModal'); }catch{}
   }
   async function handleOAuthRedirect(){
     let code = '', oauthState = '', oauthError = '';
@@ -5381,16 +5383,21 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
       oauthError = params.get('error') || '';
     }catch{ return; }
     if(!code && !oauthError) return;
+    toast('检测到 OAuth2 授权回跳，正在处理…');
+    const fail = (msg)=>{
+      log('loginLog', 'OAuth2 登录失败：' + msg);
+      toast('OAuth2 登录失败：' + msg);
+      try{ fillSettingsUI(); openModal('settingsModal'); }catch{}
+    };
     let expected = '';
     try{ expected = sessionStorage.getItem('bgmOAuthState') || ''; sessionStorage.removeItem('bgmOAuthState'); }catch{}
     history.replaceState(null, '', location.pathname + location.hash);
-    if(oauthError){ log('loginLog', 'OAuth2 授权被拒绝：' + oauthError); toast('OAuth2 授权失败：' + oauthError); return; }
-    if(!expected || !oauthState || oauthState !== expected){ log('loginLog', 'OAuth2 state 校验失败，请重新发起授权'); toast('OAuth2 state 校验失败，请重试'); return; }
+    if(oauthError){ fail('授权被拒绝：' + oauthError); return; }
+    if(!expected || !oauthState || oauthState !== expected){ fail('state 校验失败（请勿跨标签页授权），请重新点击「通过 OAuth2 登录」'); return; }
     try{ await completeOAuthLogin(code, oauthState); }
     catch(error){
       const msg = error?.message || error;
-      log('loginLog', 'OAuth2 登录失败：' + msg);
-      toast('OAuth2 登录失败：' + msg + '。若持续失败，可改用「获取 Access Token」手动登录');
+      fail(msg + '。若持续失败，可改用「获取 Access Token」手动登录');
     }
   }
   async function refreshOAuthTokenNow(){
