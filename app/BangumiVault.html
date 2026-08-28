@@ -698,6 +698,7 @@
     .settings-panel.theme{grid-column:2;grid-row:1 / span 2;align-self:stretch}
     .settings-panel.motion{grid-column:3;grid-row:1}
     .settings-panel.network-panel{grid-column:2 / span 2;grid-row:3;padding:0!important;background:transparent!important;border:0!important;align-self:start}
+    .settings-panel.cloud-panel{grid-column:1 / -1;grid-row:4;height:auto!important;padding:0!important;background:transparent!important;border:0!important;align-self:start}
     .settings-token-grid{display:grid;grid-template-columns:minmax(260px,1.25fr) minmax(180px,.75fr);gap:12px;align-items:start}
     .settings-panel textarea#tokenInput{min-height:144px;resize:none}
     .token-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.token-actions .btn{flex:1 1 120px;min-width:0}
@@ -733,7 +734,7 @@
     .settings-note{display:none!important}
     @media (max-width:1180px){
       .settings-card{aspect-ratio:auto;max-height:calc(100vh - 28px)!important;overflow:auto!important}
-      .settings-board{grid-template-columns:1fr 1fr;grid-template-rows:auto;overflow:visible}.settings-panel.account,.settings-panel.display,.settings-panel.theme,.settings-panel.motion,.settings-panel.network-panel{grid-column:auto;grid-row:auto;align-self:start}.settings-panel.network-panel{grid-column:1/-1}.settings-token-grid{grid-template-columns:1fr}.network-body-inner .settings-form-grid.one{grid-template-columns:1fr}.settings-form-grid{grid-template-columns:1fr 1fr}
+      .settings-board{grid-template-columns:1fr 1fr;grid-template-rows:auto;overflow:visible}.settings-panel.account,.settings-panel.display,.settings-panel.theme,.settings-panel.motion,.settings-panel.network-panel{grid-column:auto;grid-row:auto;align-self:start}.settings-panel.network-panel{grid-column:1/-1;height:auto!important}.settings-panel.cloud-panel{grid-column:1/-1;height:auto!important}.settings-token-grid{grid-template-columns:1fr}.network-body-inner .settings-form-grid.one{grid-template-columns:1fr}.settings-form-grid{grid-template-columns:1fr 1fr}
     }
     @media (max-width:760px){.settings-board,.settings-token-grid,.settings-form-grid,.settings-form-grid.two,.settings-form-grid.three{grid-template-columns:1fr}.font-apply-row{grid-template-columns:1fr}.font-apply-row .btn{height:auto}.settings-footer-actions{align-items:stretch;flex-direction:column}.settings-footer-left{width:100%}}
 
@@ -767,7 +768,8 @@
       grid-template-rows:auto auto!important;
       grid-template-areas:
         "account theme motion"
-        "display network network"!important;
+        "display network network"
+        "cloud cloud cloud"!important;
       grid-auto-flow:row!important;
       gap:14px 14px!important;
       align-items:start!important;
@@ -791,7 +793,8 @@
     #settingsModal .settings-panel.theme{grid-area:theme!important;}
     #settingsModal .settings-panel.motion{grid-area:motion!important;}
     #settingsModal .settings-panel.display{grid-area:display!important;}
-    #settingsModal .settings-panel.network-panel{grid-area:network!important;padding:0!important;border:0!important;background:transparent!important;}
+    #settingsModal .settings-panel.network-panel{grid-area:network!important;height:auto!important;padding:0!important;border:0!important;background:transparent!important;}
+    #settingsModal .settings-panel.cloud-panel{grid-area:cloud!important;height:auto!important;padding:0!important;border:0!important;background:transparent!important;align-self:start!important;}
     #settingsModal .settings-panel h3{margin-bottom:10px!important;line-height:1.25!important;}
     #settingsModal .settings-panel .field{display:block!important;margin:0!important;}
     #settingsModal .settings-panel .field + .field{margin-top:10px!important;}
@@ -838,11 +841,11 @@
     #settingsModal .network-body-inner .field label{font-size:12px!important;}
     @media (max-width:1180px){
       #settingsModal .settings-card{width:calc(100vw - 16px)!important;max-height:calc(100vh - 16px)!important;overflow:auto!important;}
-      #settingsModal .settings-board{grid-template-columns:1fr 1fr!important;grid-template-areas:"account theme" "motion display" "network network"!important;}
+      #settingsModal .settings-board{grid-template-columns:1fr 1fr!important;grid-template-areas:"account theme" "motion display" "network network" "cloud cloud"!important;}
       #settingsModal .network-body-inner .settings-form-grid.one{grid-template-columns:1fr!important;}
     }
     @media (max-width:760px){
-      #settingsModal .settings-board{grid-template-columns:1fr!important;grid-template-areas:"account" "theme" "motion" "display" "network"!important;}
+      #settingsModal .settings-board{grid-template-columns:1fr!important;grid-template-areas:"account" "theme" "motion" "display" "network" "cloud"!important;}
       #settingsModal .settings-token-grid,#settingsModal .settings-form-grid.three{grid-template-columns:1fr!important;}
     }
 
@@ -895,7 +898,7 @@
       display:grid!important;
       grid-template-columns:minmax(470px,1.15fr) minmax(390px,1fr) minmax(330px,.86fr)!important;
       grid-template-rows:auto auto!important;
-      grid-template-areas:"account theme motion" "display network network"!important;
+      grid-template-areas:"account theme motion" "display network network" "cloud cloud cloud"!important;
       gap:14px!important;
       align-items:start!important;
       flex:0 0 auto!important;
@@ -905,7 +908,7 @@
     }
     #settingsModal .settings-column{display:contents!important}
     #settingsModal .settings-panel{height:auto!important;min-height:0!important;align-self:start!important;padding:14px!important;border:var(--ui-border-width) solid var(--line)!important;background:rgba(255,255,255,.052)!important;box-sizing:border-box!important}
-    #settingsModal .settings-panel.account{grid-area:account!important}.settings-panel.theme{grid-area:theme!important}.settings-panel.motion{grid-area:motion!important}.settings-panel.display{grid-area:display!important}.settings-panel.network-panel{grid-area:network!important;padding:0!important;border:0!important;background:transparent!important}
+    #settingsModal .settings-panel.account{grid-area:account!important}.settings-panel.theme{grid-area:theme!important}.settings-panel.motion{grid-area:motion!important}.settings-panel.display{grid-area:display!important}.settings-panel.network-panel{grid-area:network!important;height:auto!important;padding:0!important;border:0!important;background:transparent!important}#settingsModal .settings-panel.cloud-panel{grid-area:cloud!important;height:auto!important;padding:0!important;border:0!important;background:transparent!important;align-self:start!important}
     #settingsModal .settings-panel h3{margin:0 0 10px!important;line-height:1.2!important;font-size:14px!important}
     #settingsModal .settings-panel .field{display:block!important;margin:0!important}.settings-panel .field+.field{margin-top:9px!important}
     #settingsModal .settings-panel .field label{display:block!important;margin:0 0 7px!important;line-height:18px!important;min-height:18px!important;white-space:nowrap!important}
@@ -929,8 +932,8 @@
     #settingsModal .settings-footer-actions{margin-top:auto!important;display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px!important;flex:0 0 auto!important}.settings-footer-left{font-size:12px!important;display:flex!important;align-items:center!important;gap:10px!important;min-width:0!important;flex:1!important}.settings-link-row{display:flex!important;align-items:center!important;gap:8px!important;flex:none!important}.settings-foot-link{width:36px!important;height:36px!important;border-radius:13px!important;color:var(--soft)!important;background:rgba(255,255,255,.055)!important;border:var(--ui-border-width) solid var(--line)!important}.settings-foot-link:hover{color:var(--text)!important;border-color:var(--accent-line)!important;background:rgba(255,255,255,.09)!important}.settings-foot-link svg{width:23px!important;height:23px!important;display:block!important;fill:currentColor!important}.settings-foot-link-bgm{color:var(--a)!important;background:rgba(255,255,255,.055)!important}.settings-foot-link-bgm svg{width:25px!important;height:25px!important}.settings-footer-left .local-note{white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}.settings-footer-actions .btn{min-width:132px!important;flex:none!important}
     #loginLog{display:none!important}
     [data-motion="soft"] body:before,[data-motion="soft"] body:after{animation:none!important;opacity:.24!important}[data-motion="off"] body:before,[data-motion="off"] body:after{display:none!important}
-    @media (max-width:1180px){#settingsModal .settings-card{width:calc(100vw - 16px)!important;height:auto!important;max-height:calc(100vh - 16px)!important;overflow:auto!important;aspect-ratio:auto!important}#settingsModal .settings-board{grid-template-columns:1fr 1fr!important;grid-template-areas:"account theme" "motion display" "network network"!important}.network-body-inner .settings-form-grid.one{grid-template-columns:1fr!important}}
-    @media (max-width:760px){#settingsModal .settings-board{grid-template-columns:1fr!important;grid-template-areas:"account" "theme" "motion" "display" "network"!important}.settings-token-grid,.settings-form-grid.three{grid-template-columns:1fr!important}.font-apply-row{grid-template-columns:1fr!important}.settings-footer-actions{align-items:stretch!important;flex-direction:column!important}.settings-footer-left{width:100%!important}.network-body-inner .settings-form-grid.one{grid-template-columns:1fr!important}}
+    @media (max-width:1180px){#settingsModal .settings-card{width:calc(100vw - 16px)!important;height:auto!important;max-height:calc(100vh - 16px)!important;overflow:auto!important;aspect-ratio:auto!important}#settingsModal .settings-board{grid-template-columns:1fr 1fr!important;grid-template-areas:"account theme" "motion display" "network network" "cloud cloud"!important}.network-body-inner .settings-form-grid.one{grid-template-columns:1fr!important}}
+    @media (max-width:760px){#settingsModal .settings-board{grid-template-columns:1fr!important;grid-template-areas:"account" "theme" "motion" "display" "network" "cloud"!important}.settings-token-grid,.settings-form-grid.three{grid-template-columns:1fr!important}.font-apply-row{grid-template-columns:1fr!important}.settings-footer-actions{align-items:stretch!important;flex-direction:column!important}.settings-footer-left{width:100%!important}.network-body-inner .settings-form-grid.one{grid-template-columns:1fr!important}}
 
 
     /* v0.30.5 final alignment + full accent pass */
@@ -983,7 +986,7 @@
       display:grid!important;
       grid-template-columns:420px minmax(370px,1fr) 330px!important;
       grid-template-rows:auto auto!important;
-      grid-template-areas:"account theme motion" "display network network"!important;
+      grid-template-areas:"account theme motion" "display network network" "cloud cloud cloud"!important;
       gap:14px!important;
       align-content:start!important;
       align-items:start!important;
@@ -993,7 +996,8 @@
     #settingsModal .settings-panel.theme{grid-area:theme!important;}
     #settingsModal .settings-panel.motion{grid-area:motion!important;}
     #settingsModal .settings-panel.display{grid-area:display!important;}
-    #settingsModal .settings-panel.network-panel{grid-area:network!important;padding:0!important;border:0!important;background:transparent!important;}
+    #settingsModal .settings-panel.network-panel{grid-area:network!important;height:auto!important;padding:0!important;border:0!important;background:transparent!important;}
+    #settingsModal .settings-panel.cloud-panel{grid-area:cloud!important;height:auto!important;padding:0!important;border:0!important;background:transparent!important;align-self:start!important;}
     #settingsModal .settings-panel h3{margin:0 0 10px!important;font-size:14px!important;line-height:1.2!important;}
     #settingsModal .settings-token-grid{display:grid!important;grid-template-columns:minmax(0,1fr) 180px!important;gap:12px!important;align-items:start!important;}
     #settingsModal .settings-panel textarea#tokenInput{height:92px!important;min-height:92px!important;resize:none!important;}
@@ -1030,8 +1034,8 @@
     #settingsModal .settings-foot-link-bgm svg{width:24px!important;height:24px!important;}
     #settingsModal .settings-footer-left .local-note{white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;}
     #settingsModal .settings-footer-actions .btn{min-width:132px!important;flex:none!important;}
-    @media (max-width:1180px){#settingsModal .settings-card{width:calc(100vw - 16px)!important;height:auto!important;max-height:calc(100vh - 16px)!important;overflow:auto!important;aspect-ratio:auto!important}#settingsModal .settings-board{grid-template-columns:1fr 1fr!important;grid-template-areas:"account theme" "motion display" "network network"!important;overflow:visible!important}#settingsModal .settings-token-grid,#settingsModal .network-body-inner .settings-form-grid.one{grid-template-columns:1fr!important}#settingsModal #usernameInput,#settingsModal #recentMonthsInput{max-width:none!important}}
-    @media (max-width:760px){#settingsModal .settings-board{grid-template-columns:1fr!important;grid-template-areas:"account" "theme" "motion" "display" "network"!important}.settings-footer-actions{align-items:stretch!important;flex-direction:column!important}.settings-footer-left{width:100%!important}}
+    @media (max-width:1180px){#settingsModal .settings-card{width:calc(100vw - 16px)!important;height:auto!important;max-height:calc(100vh - 16px)!important;overflow:auto!important;aspect-ratio:auto!important}#settingsModal .settings-board{grid-template-columns:1fr 1fr!important;grid-template-areas:"account theme" "motion display" "network network" "cloud cloud"!important;overflow:visible!important}#settingsModal .settings-token-grid,#settingsModal .network-body-inner .settings-form-grid.one{grid-template-columns:1fr!important}#settingsModal #usernameInput,#settingsModal #recentMonthsInput{max-width:none!important}}
+    @media (max-width:760px){#settingsModal .settings-board{grid-template-columns:1fr!important;grid-template-areas:"account" "theme" "motion" "display" "network" "cloud"!important}.settings-footer-actions{align-items:stretch!important;flex-direction:column!important}.settings-footer-left{width:100%!important}}
 
   
 
@@ -1087,7 +1091,8 @@
       grid-template-columns:minmax(430px,1.08fr) minmax(410px,1fr) minmax(340px,.84fr)!important;
       grid-template-areas:
         "account theme motion"
-        "display network network"!important;
+        "display network network"
+        "cloud cloud cloud"!important;
       grid-template-rows:max-content max-content!important;
       gap:18px 14px!important;
       align-items:start!important;
@@ -1099,7 +1104,8 @@
     #settingsModal .settings-panel.theme{grid-area:theme!important;}
     #settingsModal .settings-panel.motion{grid-area:motion!important;}
     #settingsModal .settings-panel.display{grid-area:display!important;}
-    #settingsModal .settings-panel.network-panel{grid-area:network!important;margin-top:0!important;padding:0!important;border:0!important;background:transparent!important;}
+    #settingsModal .settings-panel.network-panel{grid-area:network!important;margin-top:0!important;height:auto!important;padding:0!important;border:0!important;background:transparent!important;}
+    #settingsModal .settings-panel.cloud-panel{grid-area:cloud!important;margin-top:0!important;height:auto!important;padding:0!important;border:0!important;background:transparent!important;align-self:start!important;}
 
     #settingsModal .settings-token-grid{
       grid-template-columns:minmax(240px,1fr) minmax(150px,190px)!important;
@@ -1202,12 +1208,12 @@
 
     @media (max-width:1180px){
       #settingsModal .settings-card{height:calc(100vh - 16px)!important;width:calc(100vw - 16px)!important;}
-      #settingsModal .settings-board{grid-template-columns:1fr 1fr!important;grid-template-areas:"account theme" "motion display" "network network"!important;}
+      #settingsModal .settings-board{grid-template-columns:1fr 1fr!important;grid-template-areas:"account theme" "motion display" "network network" "cloud cloud"!important;}
       #settingsModal .settings-token-grid{grid-template-columns:1fr!important;}
       #settingsModal .network-body-inner .settings-form-grid.one{grid-template-columns:1fr!important;}
     }
     @media (max-width:760px){
-      #settingsModal .settings-board{grid-template-columns:1fr!important;grid-template-areas:"account" "theme" "motion" "display" "network"!important;}
+      #settingsModal .settings-board{grid-template-columns:1fr!important;grid-template-areas:"account" "theme" "motion" "display" "network" "cloud"!important;}
       #settingsModal .settings-form-grid.three{grid-template-columns:1fr!important;}
     }
 
@@ -2868,21 +2874,7 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
               </div>
               <label class="checkbox-row network-check"><input type="checkbox" id="customApiPrivateInput" /> <span>登录和收藏同步也使用自定义 API</span></label>
               <div class="network-warning">开启后 Access Token 会经过自定义 API。只建议使用自己部署或完全信任的反代；不开启时私有同步仍走官方 API。</div>
-            </div></div>
-          </details>
-        </section>
-
-        <section class="settings-panel network-panel">
-          <details class="network-settings" id="cloudSyncDetails">
-            <summary>云端同步：GitHub 仓库（同步到云端 / 从云端恢复）</summary>
-            <div class="network-body"><div class="network-body-inner">
-              <div class="settings-form-grid one">
-                <div class="field"><label>GitHub Personal Access Token</label><input id="githubTokenInput" type="password" autocomplete="off" placeholder="ghp_…（仅保存在本浏览器）" /><div class="help">推送用。需要 Contents 读写权限：经典 Token 勾选 repo；Fine-grained Token 勾选本仓库的 Contents: Read and write。</div></div>
-                <div class="field"><label>仓库</label><input id="githubRepoInput" placeholder="stay206/-" /><div class="help">格式：用户名/仓库名。</div></div>
-                <div class="field"><label>分支</label><input id="githubBranchInput" placeholder="资料库" /><div class="help">数据将以 JSON 提交到该分支的 vault/state.json；网页在新设备首次打开时会自动从这个分支恢复数据。</div></div>
-              </div>
-              <div class="token-actions"><button class="btn small" id="cloudRestoreBtn">从云端恢复</button></div>
-              <div class="network-warning">注意：若仓库是公开的，云端备份内容（收藏、吐槽等）任何人都能通过分支读取；GitHub Token 永远不会被写入云端数据。本地浏览器库仍是主数据源，云端用于跨设备恢复。</div>
+              <div class="token-actions"><button class="btn small" id="cloudSettingsBtn">云端同步设置（GitHub 仓库）</button></div>
             </div></div>
           </details>
         </section>
@@ -2909,6 +2901,24 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
       <p class="help" id="syncHelp">日常同步只读取最近几个月的更新并增量写入；完整同步才做全量核对和安全箱判断。</p>
       <div class="progress"><div class="bar" id="syncBar"></div></div>
       <div class="sync-log" id="syncLog" style="margin-top:14px"></div>
+    </div>
+  </div>
+
+  <div class="modal-mask" id="cloudSyncModal">
+    <div class="modal-card" style="max-width:640px">
+      <div class="row"><h2 style="margin:0">云端同步（GitHub 仓库）</h2><div class="grow"></div><button class="btn small" data-close="cloudSyncModal">关闭</button></div>
+      <p class="help">把本地资料库提交并推送到仓库「资料库」分支的 vault/state.json；新设备首次打开（本地资料库为空）时会自动从该分支恢复。也可在顶部点「同步到云端」一键推送。</p>
+      <div class="settings-form-grid one" style="margin-top:12px">
+        <div class="field"><label>GitHub Personal Access Token</label><input id="githubTokenInput" type="password" autocomplete="off" placeholder="ghp_…（仅保存在本浏览器）" /><div class="help">推送用。需要 Contents 读写权限：经典 Token 勾选 repo；Fine-grained Token 勾选本仓库的 Contents: Read and write。</div></div>
+        <div class="field"><label>仓库</label><input id="githubRepoInput" placeholder="stay206/-" /><div class="help">格式：用户名/仓库名。</div></div>
+        <div class="field"><label>分支</label><input id="githubBranchInput" placeholder="资料库" /><div class="help">数据提交到该分支的 vault/state.json。</div></div>
+      </div>
+      <div class="token-actions">
+        <button class="btn small primary" id="cloudSaveBtn">保存设置</button>
+        <button class="btn small" id="cloudRestoreBtn">从云端恢复</button>
+        <button class="btn small" id="cloudPushBtn2">同步到云端</button>
+      </div>
+      <div class="network-warning" style="margin-top:10px">注意：若仓库是公开的，云端备份内容（收藏、吐槽等）任何人都能通过分支读取；GitHub Token 永远不会被写入云端数据。本地浏览器库仍是主数据源，云端用于跨设备恢复。</div>
     </div>
   </div>
 
@@ -5276,7 +5286,7 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
   }
   function readToken(){ return $('tokenInput').value.trim() || runtimeToken || state.settings.token || ''; }
   async function saveSettingsFromUI(){
-    state.settings.username = $('usernameInput').value.trim(); state.settings.recentMonths = Math.max(1, Math.min(120, Number($('recentMonthsInput')?.value || 3))); state.settings.pageSize = clampNum($('pageSizeInput')?.value, 8, 360, 120); state.settings.commentLines = clampNum($('commentLinesInput')?.value, 0, 6, 0); state.settings.borderWidth = clampNum($('borderWidthInput')?.value, 0, 4, 1); state.settings.customFont = String($('customFontInput')?.value || '').trim(); state.settings.apiBase = cleanBaseUrl($('apiBaseInput')?.value || '', ''); state.settings.imageProxyBase = cleanBaseUrl($('imageProxyBaseInput')?.value || '', ''); state.settings.siteBase = cleanBaseUrl($('siteBaseInput')?.value || '', ''); state.settings.customApiPrivate = !!$('customApiPrivateInput')?.checked; state.settings.githubToken = String($('githubTokenInput')?.value || '').trim(); state.settings.githubRepo = String($('githubRepoInput')?.value || '').trim() || 'stay206/-'; state.settings.githubBranch = String($('githubBranchInput')?.value || '').trim() || '资料库'; state.settings.rememberToken = $('rememberTokenInput').checked; state.settings.profileIntro = String($('profileIntroInput')?.value || '').trim(); state.settings.token = state.settings.rememberToken ? $('tokenInput').value.trim() : '';
+    state.settings.username = $('usernameInput').value.trim(); state.settings.recentMonths = Math.max(1, Math.min(120, Number($('recentMonthsInput')?.value || 3))); state.settings.pageSize = clampNum($('pageSizeInput')?.value, 8, 360, 120); state.settings.commentLines = clampNum($('commentLinesInput')?.value, 0, 6, 0); state.settings.borderWidth = clampNum($('borderWidthInput')?.value, 0, 4, 1); state.settings.customFont = String($('customFontInput')?.value || '').trim(); state.settings.apiBase = cleanBaseUrl($('apiBaseInput')?.value || '', ''); state.settings.imageProxyBase = cleanBaseUrl($('imageProxyBaseInput')?.value || '', ''); state.settings.siteBase = cleanBaseUrl($('siteBaseInput')?.value || '', ''); state.settings.customApiPrivate = !!$('customApiPrivateInput')?.checked; state.settings.rememberToken = $('rememberTokenInput').checked; state.settings.profileIntro = String($('profileIntroInput')?.value || '').trim(); state.settings.token = state.settings.rememberToken ? $('tokenInput').value.trim() : '';
     runtimeToken = $('tokenInput').value.trim() || runtimeToken; applyAppearance(false); refreshSegmentedControls(); resetRenderLimit(); await saveState({collections:false, history:false}); render(); toast(window.BANGUMI_VAULT_OFFLINE_STATE ? '个性化设置已应用' : '设置已保存');
   }
   function fillSettingsUI(){ $('tokenInput').value = state.settings.rememberToken ? (state.settings.token||'') : runtimeToken; $('usernameInput').value = state.settings.username||''; if($('recentMonthsInput')) $('recentMonthsInput').value = state.settings.recentMonths || 3; if($('pageSizeInput')) $('pageSizeInput').value = pageSize(); if($('commentLinesInput')) $('commentLinesInput').value = clampNum(state.settings.commentLines,0,6,0); if($('customFontInput')) $('customFontInput').value = state.settings.customFont || ''; if($('borderWidthInput')) $('borderWidthInput').value = clampNum(state.settings.borderWidth,0,4,1); if($('apiBaseInput')) $('apiBaseInput').value = state.settings.apiBase || ''; if($('imageProxyBaseInput')) $('imageProxyBaseInput').value = state.settings.imageProxyBase || ''; if($('siteBaseInput')) $('siteBaseInput').value = state.settings.siteBase || ''; if($('profileIntroInput')) $('profileIntroInput').value = state.settings.profileIntro || ''; if($('customApiPrivateInput')) $('customApiPrivateInput').checked = !!state.settings.customApiPrivate; if($('githubTokenInput')) $('githubTokenInput').value = state.settings.githubToken || ''; if($('githubRepoInput')) $('githubRepoInput').value = state.settings.githubRepo || 'stay206/-'; if($('githubBranchInput')) $('githubBranchInput').value = state.settings.githubBranch || '资料库'; $('rememberTokenInput').checked = !!state.settings.rememberToken; refreshSegmentedControls(); }
@@ -6452,6 +6462,22 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
     document.querySelectorAll('.modal-mask').forEach(m=>m.addEventListener('click', e=>{ if(e.target===m) closeModal(m.id); }));
     $('openTokenBtn').onclick=()=> window.open(TOKEN_URL,'_blank','noopener'); $('testLoginBtn').onclick=testLogin; $('saveSettingsBtn').onclick=saveSettingsFromUI;
     $('syncBtn').onclick=syncRecent; $('fullSyncBtn').onclick=syncAll; $('cloudSyncBtn').onclick=cloudPush; $('cloudRestoreBtn').onclick=()=>cloudRestore(false);
+    if($('cloudSettingsBtn')) $('cloudSettingsBtn').onclick=()=>{ fillSettingsUI(); openModal('cloudSyncModal'); };
+    if($('cloudSaveBtn')) $('cloudSaveBtn').onclick=async ()=>{
+      state.settings.githubToken = $('githubTokenInput').value.trim();
+      state.settings.githubRepo = $('githubRepoInput').value.trim();
+      state.settings.githubBranch = $('githubBranchInput').value.trim();
+      await saveState({collections:false, history:false});
+      toast('云端同步设置已保存');
+    };
+    if($('cloudPushBtn2')) $('cloudPushBtn2').onclick=async ()=>{
+      state.settings.githubToken = $('githubTokenInput').value.trim();
+      state.settings.githubRepo = $('githubRepoInput').value.trim();
+      state.settings.githubBranch = $('githubBranchInput').value.trim();
+      await saveState({collections:false, history:false});
+      closeModal('cloudSyncModal');
+      cloudPush();
+    };
     $('resumeSyncBtn').onclick=()=>{ if(activeLongTask && !activeLongTask.finished) openModal('syncModal'); };
     $('cancelSyncBtn').onclick=()=>{ closeModal('syncModal'); toast('任务仍在后台继续，可正常搜索和浏览'); };
     $('stopSyncBtn').onclick=stopLongTask;
