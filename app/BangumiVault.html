@@ -2752,6 +2752,7 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
           <span class="pill" id="accountPill">未登录</span>
           <span class="pill" id="countPill">0 条</span>
           <div class="grow"></div>
+          <button class="btn" id="cloudSyncBtn" title="把本地资料库数据提交并推送到 GitHub 仓库的「资料库」分支；需在设置中配置 GitHub Token。">同步到云端</button>
           <button class="btn primary" id="syncBtn" title="只扫描最近自定义月份内更新过的收藏；不会触发安全箱删除判断，适合日常同步。">同步最近</button>
           <button class="btn warn" id="fullSyncBtn" title="完整分页核对全部收藏；只有这个模式会做远端缺失检查并把疑似消失条目放入安全箱。">完整同步</button>
           <button class="btn warn hidden" id="resumeSyncBtn" type="button">任务进行中</button>
@@ -2870,6 +2871,21 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
             </div></div>
           </details>
         </section>
+
+        <section class="settings-panel network-panel">
+          <details class="network-settings" id="cloudSyncDetails">
+            <summary>云端同步：GitHub 仓库（同步到云端 / 从云端恢复）</summary>
+            <div class="network-body"><div class="network-body-inner">
+              <div class="settings-form-grid one">
+                <div class="field"><label>GitHub Personal Access Token</label><input id="githubTokenInput" type="password" autocomplete="off" placeholder="ghp_…（仅保存在本浏览器）" /><div class="help">推送用。需要 Contents 读写权限：经典 Token 勾选 repo；Fine-grained Token 勾选本仓库的 Contents: Read and write。</div></div>
+                <div class="field"><label>仓库</label><input id="githubRepoInput" placeholder="stay206/-" /><div class="help">格式：用户名/仓库名。</div></div>
+                <div class="field"><label>分支</label><input id="githubBranchInput" placeholder="资料库" /><div class="help">数据将以 JSON 提交到该分支的 vault/state.json；网页在新设备首次打开时会自动从这个分支恢复数据。</div></div>
+              </div>
+              <div class="token-actions"><button class="btn small" id="cloudRestoreBtn">从云端恢复</button></div>
+              <div class="network-warning">注意：若仓库是公开的，云端备份内容（收藏、吐槽等）任何人都能通过分支读取；GitHub Token 永远不会被写入云端数据。本地浏览器库仍是主数据源，云端用于跨设备恢复。</div>
+            </div></div>
+          </details>
+        </section>
       </div>
 
       <div class="settings-footer-actions">
@@ -2940,7 +2956,7 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
   function statusMapForNav(){ return filters.type ? (STATUS_BY_TYPE[Number(filters.type)] || STATUS) : STATUS; }
   const SUBJECT_LABEL = {1:'书籍',2:'动画',3:'音乐',4:'游戏',6:'三次元'};
   const BGM_TYPE_PATH = {1:'book',2:'anime',3:'music',4:'game',6:'real'};
-  const DEFAULT_STATE = {schema:17, settings:{username:'', token:'', rememberToken:false, theme:'system', themeMode:'system', recentMonths:3, fontFamily:'system', customFont:'', cardSize:'standard', pageSize:120, commentLines:0, motion:'full', accentColor:'sakura', borderWidth:1, apiBase:'', imageProxyBase:'', siteBase:'', customApiPrivate:false, profileIntro:''}, collections:{}, history:[], runs:[], profile:null, storageMeta:null};
+  const DEFAULT_STATE = {schema:17, settings:{username:'', token:'', rememberToken:false, theme:'system', themeMode:'system', recentMonths:3, fontFamily:'system', customFont:'', cardSize:'standard', pageSize:120, commentLines:0, motion:'full', accentColor:'sakura', borderWidth:1, apiBase:'', imageProxyBase:'', siteBase:'', customApiPrivate:false, profileIntro:'', githubToken:'', githubRepo:'stay206/-', githubBranch:'资料库'}, collections:{}, history:[], runs:[], profile:null, storageMeta:null};
   let state = structuredClone(DEFAULT_STATE);
   let filters = {status:0, tag:'全部', type:0, q:'', sort:'updated_desc'};
   let tagSearchOpen = false;
@@ -5260,12 +5276,118 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
   }
   function readToken(){ return $('tokenInput').value.trim() || runtimeToken || state.settings.token || ''; }
   async function saveSettingsFromUI(){
-    state.settings.username = $('usernameInput').value.trim(); state.settings.recentMonths = Math.max(1, Math.min(120, Number($('recentMonthsInput')?.value || 3))); state.settings.pageSize = clampNum($('pageSizeInput')?.value, 8, 360, 120); state.settings.commentLines = clampNum($('commentLinesInput')?.value, 0, 6, 0); state.settings.borderWidth = clampNum($('borderWidthInput')?.value, 0, 4, 1); state.settings.customFont = String($('customFontInput')?.value || '').trim(); state.settings.apiBase = cleanBaseUrl($('apiBaseInput')?.value || '', ''); state.settings.imageProxyBase = cleanBaseUrl($('imageProxyBaseInput')?.value || '', ''); state.settings.siteBase = cleanBaseUrl($('siteBaseInput')?.value || '', ''); state.settings.customApiPrivate = !!$('customApiPrivateInput')?.checked; state.settings.rememberToken = $('rememberTokenInput').checked; state.settings.profileIntro = String($('profileIntroInput')?.value || '').trim(); state.settings.token = state.settings.rememberToken ? $('tokenInput').value.trim() : '';
+    state.settings.username = $('usernameInput').value.trim(); state.settings.recentMonths = Math.max(1, Math.min(120, Number($('recentMonthsInput')?.value || 3))); state.settings.pageSize = clampNum($('pageSizeInput')?.value, 8, 360, 120); state.settings.commentLines = clampNum($('commentLinesInput')?.value, 0, 6, 0); state.settings.borderWidth = clampNum($('borderWidthInput')?.value, 0, 4, 1); state.settings.customFont = String($('customFontInput')?.value || '').trim(); state.settings.apiBase = cleanBaseUrl($('apiBaseInput')?.value || '', ''); state.settings.imageProxyBase = cleanBaseUrl($('imageProxyBaseInput')?.value || '', ''); state.settings.siteBase = cleanBaseUrl($('siteBaseInput')?.value || '', ''); state.settings.customApiPrivate = !!$('customApiPrivateInput')?.checked; state.settings.githubToken = String($('githubTokenInput')?.value || '').trim(); state.settings.githubRepo = String($('githubRepoInput')?.value || '').trim() || 'stay206/-'; state.settings.githubBranch = String($('githubBranchInput')?.value || '').trim() || '资料库'; state.settings.rememberToken = $('rememberTokenInput').checked; state.settings.profileIntro = String($('profileIntroInput')?.value || '').trim(); state.settings.token = state.settings.rememberToken ? $('tokenInput').value.trim() : '';
     runtimeToken = $('tokenInput').value.trim() || runtimeToken; applyAppearance(false); refreshSegmentedControls(); resetRenderLimit(); await saveState({collections:false, history:false}); render(); toast(window.BANGUMI_VAULT_OFFLINE_STATE ? '个性化设置已应用' : '设置已保存');
   }
-  function fillSettingsUI(){ $('tokenInput').value = state.settings.rememberToken ? (state.settings.token||'') : runtimeToken; $('usernameInput').value = state.settings.username||''; if($('recentMonthsInput')) $('recentMonthsInput').value = state.settings.recentMonths || 3; if($('pageSizeInput')) $('pageSizeInput').value = pageSize(); if($('commentLinesInput')) $('commentLinesInput').value = clampNum(state.settings.commentLines,0,6,0); if($('customFontInput')) $('customFontInput').value = state.settings.customFont || ''; if($('borderWidthInput')) $('borderWidthInput').value = clampNum(state.settings.borderWidth,0,4,1); if($('apiBaseInput')) $('apiBaseInput').value = state.settings.apiBase || ''; if($('imageProxyBaseInput')) $('imageProxyBaseInput').value = state.settings.imageProxyBase || ''; if($('siteBaseInput')) $('siteBaseInput').value = state.settings.siteBase || ''; if($('profileIntroInput')) $('profileIntroInput').value = state.settings.profileIntro || ''; if($('customApiPrivateInput')) $('customApiPrivateInput').checked = !!state.settings.customApiPrivate; $('rememberTokenInput').checked = !!state.settings.rememberToken; refreshSegmentedControls(); }
+  function fillSettingsUI(){ $('tokenInput').value = state.settings.rememberToken ? (state.settings.token||'') : runtimeToken; $('usernameInput').value = state.settings.username||''; if($('recentMonthsInput')) $('recentMonthsInput').value = state.settings.recentMonths || 3; if($('pageSizeInput')) $('pageSizeInput').value = pageSize(); if($('commentLinesInput')) $('commentLinesInput').value = clampNum(state.settings.commentLines,0,6,0); if($('customFontInput')) $('customFontInput').value = state.settings.customFont || ''; if($('borderWidthInput')) $('borderWidthInput').value = clampNum(state.settings.borderWidth,0,4,1); if($('apiBaseInput')) $('apiBaseInput').value = state.settings.apiBase || ''; if($('imageProxyBaseInput')) $('imageProxyBaseInput').value = state.settings.imageProxyBase || ''; if($('siteBaseInput')) $('siteBaseInput').value = state.settings.siteBase || ''; if($('profileIntroInput')) $('profileIntroInput').value = state.settings.profileIntro || ''; if($('customApiPrivateInput')) $('customApiPrivateInput').checked = !!state.settings.customApiPrivate; if($('githubTokenInput')) $('githubTokenInput').value = state.settings.githubToken || ''; if($('githubRepoInput')) $('githubRepoInput').value = state.settings.githubRepo || 'stay206/-'; if($('githubBranchInput')) $('githubBranchInput').value = state.settings.githubBranch || '资料库'; $('rememberTokenInput').checked = !!state.settings.rememberToken; refreshSegmentedControls(); }
 
 
+  /* ---- 云端同步：本地资料库 <-> GitHub 仓库「资料库」分支（Contents API 直推方案） ---- */
+  const CLOUD_PATH = 'vault/state.json';
+  function githubConfig(){
+    const repoFull = String(state.settings.githubRepo || 'stay206/-').trim().replace(/^https?:\/\/github\.com\//i, '').replace(/\.git$/i, '');
+    const slash = repoFull.indexOf('/');
+    if(slash <= 0 || slash === repoFull.length - 1) throw new Error('仓库格式应为 用户名/仓库名');
+    const branch = String(state.settings.githubBranch || '资料库').trim();
+    if(!branch) throw new Error('请填写云端分支名');
+    return { owner: repoFull.slice(0, slash), name: repoFull.slice(slash + 1), branch, token: String(state.settings.githubToken || '').trim(), api: `https://api.github.com/repos/${repoFull}` };
+  }
+  function githubHeaders(cfg, jsonBody){
+    const h = {Accept:'application/vnd.github+json'};
+    if(cfg.token) h.Authorization = 'Bearer ' + cfg.token;
+    if(jsonBody) h['Content-Type'] = 'application/json';
+    return h;
+  }
+  function encodeBase64Utf8(str){
+    const bytes = new TextEncoder().encode(str);
+    let bin = ''; const CHUNK = 0x8000;
+    for(let i = 0; i < bytes.length; i += CHUNK) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + CHUNK));
+    return btoa(bin);
+  }
+  function decodeBase64Utf8(b64){
+    const bin = atob(String(b64).replace(/\s/g, ''));
+    const bytes = new Uint8Array(bin.length);
+    for(let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return new TextDecoder().decode(bytes);
+  }
+  function cloudCollectData(){
+    const core = stateCoreForStorage();
+    if(core.settings){ core.settings.token = ''; core.settings.githubToken = ''; }
+    return {...core, collections: collectionsForStorage(), history: state.history || [], exportedAt: Date.now()};
+  }
+  async function cloudPutFile(cfg, content){
+    const bodyText = JSON.stringify(content);
+    let sha = '';
+    try{
+      const res = await fetch(`${cfg.api}/contents/${CLOUD_PATH}?ref=${encodeURIComponent(cfg.branch)}`, {headers: githubHeaders(cfg)});
+      if(res.status === 200) sha = (await res.json())?.sha || '';
+      else if(res.status !== 404) throw new Error('查询云端文件失败：HTTP ' + res.status);
+    }catch(error){ if(!/Failed to fetch|NetworkError/i.test(String(error?.message))) throw error; }
+    const put = await fetch(`${cfg.api}/contents/${CLOUD_PATH}`, {
+      method: 'PUT',
+      headers: githubHeaders(cfg, true),
+      body: JSON.stringify({ message: `Bangumi 保管库云端同步 ${new Date().toLocaleString('zh-CN')}`, content: encodeBase64Utf8(bodyText), branch: cfg.branch, ...(sha ? {sha} : {}) })
+    });
+    if(!put.ok){
+      const text = await put.text();
+      if(put.status === 401) throw new Error('GitHub Token 无效或已过期（401）');
+      if(put.status === 403) throw new Error('GitHub 拒绝访问（403）：请确认 Token 具有本仓库 Contents 写权限');
+      if(put.status === 404) throw new Error(`分支「${cfg.branch}」不存在（404）：请先在仓库创建该分支`);
+      throw new Error('推送失败：HTTP ' + put.status + ' ' + text.slice(0, 180));
+    }
+    return bodyText.length;
+  }
+  async function cloudFetchData(cfg){
+    let rawFailed = false;
+    try{
+      const raw = await fetch(`https://raw.githubusercontent.com/${cfg.owner}/${cfg.name}/${encodeURIComponent(cfg.branch)}/${CLOUD_PATH}`, {cache: 'no-store'});
+      if(raw.ok) return await raw.json();
+      rawFailed = raw.status !== 404;
+    }catch(error){ rawFailed = true; }
+    // raw 不可达时改走 Contents API（无 Token 时公开仓库也可读；单文件超过 1MB 时 API 会拒绝，只能依赖 raw 通道）。
+    const res = await fetch(`${cfg.api}/contents/${encodeURIComponent(CLOUD_PATH)}?ref=${encodeURIComponent(cfg.branch)}`, {headers: githubHeaders(cfg)});
+    if(res.status === 404) throw new Error('云端还没有备份（分支或文件不存在）');
+    if(!res.ok) throw new Error(rawFailed ? 'raw 与 API 通道均失败：HTTP ' + res.status : '读取云端数据失败：HTTP ' + res.status);
+    const info = await res.json();
+    if(!info?.content) throw new Error('云端文件超过 1MB 且 raw 通道不可用，无法读取');
+    return JSON.parse(decodeBase64Utf8(info.content));
+  }
+  async function cloudRestore(silent){
+    let cfg; try{ cfg = githubConfig(); }catch(error){ if(!silent){ toast(error.message); } return false; }
+    let data;
+    try{ data = await cloudFetchData(cfg); }
+    catch(error){ if(!silent){ toast('读取云端数据失败：' + (error?.message || error)); } return false; }
+    if(!data?.collections){ if(!silent) toast('云端数据格式无效'); return false; }
+    if(!silent){
+      const ok = await askNonBlockingConfirmation('从云端恢复会替换当前本地资料库，建议先导出备份留底。', {title: '从云端恢复', confirmText: '确认恢复', danger: true});
+      if(!ok) return false;
+    }
+    const keep = {token: state.settings.token, remember: state.settings.rememberToken, gh: state.settings.githubToken, repo: state.settings.githubRepo, branch: state.settings.githubBranch};
+    state = mergeState(data);
+    historyDeferred = false; historyLoaded = true; historyLoadError = ''; drawerHistoryIndex = null; drawerHistoryIndexSource = null; drawerHistoryIndexLength = -1;
+    if(keep.remember){ state.settings.token = keep.token; state.settings.rememberToken = true; }
+    state.settings.githubToken = keep.gh; state.settings.githubRepo = keep.repo; state.settings.githubBranch = keep.branch;
+    await saveState();
+    render();
+    if(!silent) toast(`已从云端恢复 ${Object.keys(state.collections || {}).length} 条`);
+    return true;
+  }
+  let cloudSyncBusy = false;
+  async function cloudPush(){
+    if(cloudSyncBusy){ toast('云端同步进行中，请稍候'); return; }
+    let cfg; try{ cfg = githubConfig(); }catch(error){ toast(error.message); openModal('settingsModal'); return; }
+    if(!cfg.token){ toast('请先在设置中配置 GitHub Token'); openModal('settingsModal'); return; }
+    cloudSyncBusy = true;
+    const btn = $('cloudSyncBtn'); const oldText = btn?.textContent;
+    if(btn){ btn.disabled = true; btn.textContent = '推送中…'; }
+    try{
+      const data = cloudCollectData();
+      const count = Object.keys(data.collections || {}).length;
+      const size = await cloudPutFile(cfg, data);
+      toast(`已同步到云端「${cfg.branch}」（${count} 条，${(size / 1024).toFixed(0)} KB）`);
+    }catch(error){ toast('云端同步失败：' + (error?.message || error)); }
+    finally{ cloudSyncBusy = false; if(btn){ btn.disabled = false; btn.textContent = oldText || '同步到云端'; } }
+  }
   async function syncRecent(){ return syncCollections('recent'); }
   async function syncAll(){ return syncCollections('full'); }
   async function syncCollections(mode='full'){
@@ -6327,7 +6449,7 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
     document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>closeModal(b.dataset.close));
     document.querySelectorAll('.modal-mask').forEach(m=>m.addEventListener('click', e=>{ if(e.target===m) closeModal(m.id); }));
     $('openTokenBtn').onclick=()=> window.open(TOKEN_URL,'_blank','noopener'); $('testLoginBtn').onclick=testLogin; $('saveSettingsBtn').onclick=saveSettingsFromUI;
-    $('syncBtn').onclick=syncRecent; $('fullSyncBtn').onclick=syncAll;
+    $('syncBtn').onclick=syncRecent; $('fullSyncBtn').onclick=syncAll; $('cloudSyncBtn').onclick=cloudPush; $('cloudRestoreBtn').onclick=()=>cloudRestore(false);
     $('resumeSyncBtn').onclick=()=>{ if(activeLongTask && !activeLongTask.finished) openModal('syncModal'); };
     $('cancelSyncBtn').onclick=()=>{ closeModal('syncModal'); toast('任务仍在后台继续，可正常搜索和浏览'); };
     $('stopSyncBtn').onclick=stopLongTask;
@@ -11804,6 +11926,10 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
     bindEvents(); installProfilePillReliableTrigger(); refreshSegmentedControls();
     window.matchMedia?.('(prefers-color-scheme: dark)').addEventListener?.('change',()=>{ if((state.settings.themeMode||'dark')==='system') applyAppearance(true); });
     render(); warmDrawerHistoryIndex();
+    // 新设备/首次使用：本地资料库为空且配置过 GitHub Token 时，自动从「资料库」分支恢复数据。
+    if(!window.BANGUMI_VAULT_OFFLINE_STATE && !Object.keys(state.collections || {}).length && String(state.settings.githubToken || '').trim()){
+      cloudRestore(true).then(ok=>{ if(ok){ toast('已从云端「资料库」分支恢复本地资料库'); render(); } });
+    }
     if(vaultIntegrityIssues.length) setTimeout(()=>toast(`本地资料库检测到 ${vaultIntegrityIssues.length} 项不一致，已停止自动覆盖；建议从导出备份恢复。`), 420);
   }
   init();
