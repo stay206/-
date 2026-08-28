@@ -6454,6 +6454,8 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
     document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>closeModal(b.dataset.close));
     document.querySelectorAll('.modal-mask').forEach(m=>m.addEventListener('click', e=>{ if(e.target===m) closeModal(m.id); }));
     $('openTokenBtn').onclick=()=> window.open(TOKEN_URL,'_blank','noopener'); $('testLoginBtn').onclick=testLogin; $('saveSettingsBtn').onclick=saveSettingsFromUI;
+    if($('oauthLoginBtn')) $('oauthLoginBtn').onclick=beginOAuthLogin;
+    if($('oauthCopyRedirectBtn')) $('oauthCopyRedirectBtn').onclick=async ()=>{ const redirect=oauthRedirectUri(); try{ await navigator.clipboard.writeText(redirect); toast('回调地址已复制：'+redirect); }catch{ toast('回调地址：'+redirect); } };
     $('syncBtn').onclick=syncRecent; $('fullSyncBtn').onclick=syncAll;
     $('resumeSyncBtn').onclick=()=>{ if(activeLongTask && !activeLongTask.finished) openModal('syncModal'); };
     $('cancelSyncBtn').onclick=()=>{ closeModal('syncModal'); toast('任务仍在后台继续，可正常搜索和浏览'); };
