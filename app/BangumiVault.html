@@ -5287,7 +5287,7 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
   function updateOAuthStatus(){
     const el = $('oauthStatus'); if(!el) return;
     if(!oauthSupported()){ el.textContent = '当前环境不支持 OAuth2 回调（file:// 或桌面端），请继续使用 Access Token 登录。'; return; }
-    const redirect = oauthCallbackUri();
+    const redirect = oauthRedirectUri();
     const exp = Number(state.settings.oauthExpiresAt || 0);
     const expText = exp ? `，${new Date(exp).toLocaleString()} 过期` : '';
     const authorized = !!state.settings.oauthRefreshToken || (!!state.settings.oauthLastToken && exp > Date.now());
@@ -5295,16 +5295,11 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
       ? `<span>已授权（用户 ${esc(String(state.settings.oauthUserId || ''))}${esc(expText)}）。回调地址：${esc(redirect)}</span>`
       : `<span>未授权。请先在 bgm.tv 应用管理中把回调地址设置为：${esc(redirect)}</span>`;
   }
-  // 配置了自定义 API 地址（自建 Worker）时采用 fankuhub 式服务端回调，否则回跳应用页面。
-  function oauthCallbackUri(){
-    const customBase = cleanBaseUrl(state.settings.apiBase, '');
-    return customBase ? customBase + '/oauth/callback' : oauthRedirectUri();
-  }
   function beginOAuthLogin(){
     if(!oauthSupported()){ toast('当前环境不支持 OAuth2，请在网页版使用'); return; }
     const stateVal = 'bv_' + Math.random().toString(36).slice(2) + String(Date.now()).toString(36);
     try{ sessionStorage.setItem('bgmOAuthState', stateVal); }catch{}
-    const url = `${OAUTH_AUTHORIZE_URL}?client_id=${encodeURIComponent(OAUTH_CLIENT_ID)}&response_type=code&redirect_uri=${encodeURIComponent(oauthCallbackUri())}&state=${encodeURIComponent(stateVal)}`;
+    const url = `${OAUTH_AUTHORIZE_URL}?client_id=${encodeURIComponent(OAUTH_CLIENT_ID)}&response_type=code&redirect_uri=${encodeURIComponent(oauthRedirectUri())}&state=${encodeURIComponent(stateVal)}`;
     location.href = url;
   }
   // 参考 Bangumi 系列脚本：优先直连官方端点，跨域受限时依次尝试支持 POST 的公共 CORS 中转。
@@ -5379,59 +5374,25 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
     updateOAuthStatus();
     try{ fillSettingsUI(); openModal('settingsModal'); }catch{}
   }
-  function consumeOAuthState(){
-    let expected = '';
-    try{ expected = sessionStorage.getItem('bgmOAuthState') || ''; sessionStorage.removeItem('bgmOAuthState'); }catch{}
-    return expected;
-  }
   async function handleOAuthRedirect(){
-    const fail = (msg)=>{
-      log('loginLog', 'OAuth2 登录失败：' + msg);
-      toast('OAuth2 登录失败：' + msg);
-      try{ fillSettingsUI(); openModal('settingsModal'); }catch{}
-    };
-    // 模式一（推荐，fankuhub 同款）：自建 Worker 服务端兑换后经 URL fragment 回传 token。
-    let fragment = '';
-    try{ fragment = (location.hash || '').replace(/^#/, ''); }catch{}
-    if(fragment.includes('access_token=')){
-      toast('检测到 OAuth2 授权回跳，正在处理…');
-      const hp = new URLSearchParams(fragment);
-      history.replaceState(null, '', location.pathname + location.search);
-      const oauthState = hp.get('state') || '';
-      const expected = consumeOAuthState();
-      if(!expected || !oauthState || oauthState !== expected){ fail('state 校验失败（请勿跨标签页授权），请重新点击「通过 OAuth2 登录」'); return; }
-      try{
-        const expiresIn = Number(hp.get('expires_in') || 604800);
-        applyOAuthToken({access_token: hp.get('access_token') || '', refresh_token: hp.get('refresh_token') || '', expires_in: expiresIn, user_id: Number(hp.get('user_id') || 0)});
-        const hours = Math.round(expiresIn / 3600);
-        const token = String(hp.get('access_token') || '');
-        log('loginLog', `已获取 Access Token（${token.slice(0, 8)}…，${Number(hp.get('user_id') || 0) ? '用户 ' + hp.get('user_id') + '，' : ''}有效期约 ${hours} 小时，经自建代理兑换）`);
-        try{
-          await testLogin();
-          toast('OAuth2 授权登录成功');
-        }catch(error){
-          log('loginLog', 'Access Token 已保存，但账号验证未通过：' + (error?.message || error) + '。可稍后点击「测试登录」重试');
-          toast('OAuth2 Token 已获取，账号验证失败可稍后重试');
-        }
-        await saveState({collections:false, history:false});
-        updateOAuthStatus();
-        try{ fillSettingsUI(); openModal('settingsModal'); }catch{}
-      }catch(error){ fail(error?.message || error); }
-      return;
-    }
-    // 模式二：页面直连回调（?code=...）或 Worker 兑换失败回跳（?oauth_error=...）。
     let code = '', oauthState = '', oauthError = '';
     try{
       const params = new URLSearchParams(location.search);
       code = params.get('code') || '';
       oauthState = params.get('state') || '';
-      oauthError = params.get('oauth_error') || params.get('error') || '';
+      oauthError = params.get('error') || '';
     }catch{ return; }
     if(!code && !oauthError) return;
     toast('检测到 OAuth2 授权回跳，正在处理…');
-    const expected = consumeOAuthState();
+    const fail = (msg)=>{
+      log('loginLog', 'OAuth2 登录失败：' + msg);
+      toast('OAuth2 登录失败：' + msg);
+      try{ fillSettingsUI(); openModal('settingsModal'); }catch{}
+    };
+    let expected = '';
+    try{ expected = sessionStorage.getItem('bgmOAuthState') || ''; sessionStorage.removeItem('bgmOAuthState'); }catch{}
     history.replaceState(null, '', location.pathname + location.hash);
-    if(oauthError){ fail('授权失败：' + oauthError); return; }
+    if(oauthError){ fail('授权被拒绝：' + oauthError); return; }
     if(!expected || !oauthState || oauthState !== expected){ fail('state 校验失败（请勿跨标签页授权），请重新点击「通过 OAuth2 登录」'); return; }
     try{ await completeOAuthLogin(code, oauthState); }
     catch(error){
