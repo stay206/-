@@ -2905,20 +2905,53 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
   </div>
 
   <div class="modal-mask" id="cloudSyncModal">
-    <div class="modal-card" style="max-width:640px">
-      <div class="row"><h2 style="margin:0">云端同步（GitHub 仓库）</h2><div class="grow"></div><button class="btn small" data-close="cloudSyncModal">关闭</button></div>
-      <p class="help">把本地资料库提交并推送到仓库「资料库」分支的 vault/state.json；新设备首次打开（本地资料库为空）时会自动从该分支恢复。也可在顶部点「同步到云端」一键推送。</p>
-      <div class="settings-form-grid one" style="margin-top:12px">
-        <div class="field"><label>GitHub Personal Access Token</label><input id="githubTokenInput" type="password" autocomplete="off" placeholder="ghp_…（仅保存在本浏览器）" /><div class="help">推送用。需要 Contents 读写权限：经典 Token 勾选 repo；Fine-grained Token 勾选本仓库的 Contents: Read and write。</div></div>
-        <div class="field"><label>仓库</label><input id="githubRepoInput" placeholder="stay206/-" /><div class="help">格式：用户名/仓库名。</div></div>
-        <div class="field"><label>分支</label><input id="githubBranchInput" placeholder="资料库" /><div class="help">数据提交到该分支的 vault/state.json。</div></div>
+    <div class="modal-card settings-card" style="max-width:1060px">
+      <div class="settings-head">
+        <div>
+          <h2>云端同步</h2>
+          <p>把本地资料库提交并推送到 GitHub 仓库指定分支，跨设备恢复时从此分支读取。GitHub Token 永远不会写入云端数据。</p>
+        </div>
+        <div class="grow"></div>
+        <button class="btn small" data-close="cloudSyncModal">关闭</button>
       </div>
-      <div class="token-actions">
-        <button class="btn small primary" id="cloudSaveBtn">保存设置</button>
-        <button class="btn small" id="cloudRestoreBtn">从云端恢复</button>
-        <button class="btn small" id="cloudPushBtn2">同步到云端</button>
+      <div class="settings-board" style="grid-template-columns:1fr!important;">
+        <section class="settings-panel account">
+          <h3>账号与同步（云端 · GitHub 仓库）</h3>
+          <div class="settings-token-grid">
+            <div class="field token-field">
+              <label>GitHub Personal Access Token</label>
+              <textarea id="githubTokenInput" rows="5" autocomplete="off" placeholder="粘贴 ghp_… Token。仅保存在本浏览器。&#10;需要 Contents 读写权限：经典 Token 勾选 repo；Fine-grained Token 勾选本仓库的 Contents: Read and write。"></textarea>
+              <div class="token-actions">
+                <button class="btn small good" id="cloudSaveBtn">保存</button>
+              </div>
+              <div class="token-import-row">
+                <button class="btn small" id="cloudPushBtn2">同步到云端</button>
+                <span class="help">顶部工具栏也有同款按钮。推送到当前配置分支的 vault/state.json。</span>
+              </div>
+            </div>
+            <div>
+              <div class="field">
+                <label>仓库</label>
+                <input id="githubRepoInput" placeholder="stay206/-" />
+                <div class="help">格式：用户名/仓库名。</div>
+              </div>
+              <div class="field">
+                <label>分支</label>
+                <input id="githubBranchInput" placeholder="资料库" />
+                <div class="help">数据写入该分支的 vault/state.json。</div>
+              </div>
+              <div class="remember-row">
+                <label class="checkbox-row" style="visibility:hidden"><input type="checkbox" disabled /></label>
+                <span class="help">—</span>
+              </div>
+            </div>
+          </div>
+          <div class="token-actions" style="margin-top:12px">
+            <button class="btn small" id="cloudRestoreBtn">从云端恢复</button>
+          </div>
+          <div class="network-warning" style="margin-top:10px">若仓库是公开的，云端备份内容（收藏、吐槽等）任何人都能通过分支读取。本地浏览器库仍是主数据源，云端用于跨设备恢复。</div>
+        </section>
       </div>
-      <div class="network-warning" style="margin-top:10px">注意：若仓库是公开的，云端备份内容（收藏、吐槽等）任何人都能通过分支读取；GitHub Token 永远不会被写入云端数据。本地浏览器库仍是主数据源，云端用于跨设备恢复。</div>
     </div>
   </div>
 
