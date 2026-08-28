@@ -5305,13 +5305,16 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
   async function oauthTokenRequest(params){
     const body = new URLSearchParams(params).toString();
     const encoded = encodeURIComponent(OAUTH_TOKEN_URL);
+    const customBase = cleanBaseUrl(state.settings.apiBase, '');
     const targets = [
       'https://api.bgm.tv/oauth/access_token',
+      customBase ? customBase + '/oauth/access_token' : null,
+      'https://api.chobits.sai.cc/oauth/access_token',
       OAUTH_TOKEN_URL,
       'https://test.cors.workers.dev/?' + OAUTH_TOKEN_URL,
       'https://api.cors.lol/?url=' + encoded,
       'https://thingproxy.freeboard.io/fetch/' + OAUTH_TOKEN_URL
-    ];
+    ].filter(Boolean);
     const isDirect = (url)=> url === OAUTH_TOKEN_URL || url.startsWith('https://api.bgm.tv/');
     const RELAY_HINTS = ['api key','corsproxy','rate','quota','usage','origin','cors','captcha','proxy'];
     let lastError = null;
