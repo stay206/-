@@ -2889,9 +2889,10 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
         <button class="btn primary" id="saveSettingsBtn">保存设置</button>
       </div>
       <div class="sync-log" id="loginLog" aria-live="polite"></div>
-      <div id="manualExchange" style="display:none">
-        <div class="help" style="margin:6px 0;">已获得授权码。点击下方复制兑换脚本 → 在 bgm.tv 任意页面按 F12 打开控制台粘贴运行（bgm.tv 同源无跨域限制）→ 脚本会兑换 Access Token 并复制到剪贴板 → 回到本页粘贴到上方 Token 输入框，点「测试登录」。</div>
-        <div class="token-actions"><button class="btn small" id="copyExchangeBtn">复制兑换脚本</button></div>
+      <div id="manualExchange" style="display:none;border:1px solid rgba(64,196,140,.45);background:rgba(64,196,140,.08);border-radius:10px;padding:10px 12px;margin-top:8px;">
+        <div style="font-weight:600;margin-bottom:4px;">✔ 授权码已到手 —— 无需再点击任何授权按钮</div>
+        <div class="help" style="margin:6px 0;">第 1 步：点击下方「复制兑换脚本」。第 2 步：在 bgm.tv 任意页面按 F12 打开控制台，粘贴运行（bgm.tv 同源无跨域限制），脚本会兑换出 Access Token 并复制到剪贴板。第 3 步：回到本页，把 Token 粘贴到上方输入框，点「测试登录」。若重复点击授权按钮会造成授权页来回闪跳。</div>
+        <div class="token-actions"><button class="btn small good" id="copyExchangeBtn">复制兑换脚本</button></div>
       </div>
     </div>
   </div>
@@ -5314,7 +5315,10 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
   }
   function showManualExchange(code){
     lastOAuthCode = code;
-    if($('manualExchange')) $('manualExchange').style.display = '';
+    if($('manualExchange')){
+      $('manualExchange').style.display = '';
+      try{ $('manualExchange').scrollIntoView({block:'center', behavior:'smooth'}); }catch{}
+    }
     if($('copyExchangeBtn')) $('copyExchangeBtn').onclick = async ()=>{
       try{
         await navigator.clipboard.writeText(buildExchangeScript(code));
