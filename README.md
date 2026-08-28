@@ -53,15 +53,17 @@ https://stay206.github.io/-/
 
 ### 自建代理（解决在线版 OAuth2 登录 / 同步跨域问题）
 
-bgm.tv 的 OAuth2 授权码兑换接口不带 CORS 响应头，浏览器无法直接完成兑换；公共 CORS 中转也大多限流或失效。可靠方案是部署一个自己的免费 Cloudflare Worker 反向代理（每天 10 万次请求额度）：
+bgm.tv 的 OAuth2 授权码兑换接口不带 CORS 响应头，浏览器无法直接完成兑换（`fankuhub.com` 等网站能实现授权，是因为回调落在它们自己的服务器上做兑换）。仓库提供了一份 Cloudflare Worker 代码，让你用同样的「服务端回调兑换」模式部署一个自己的免费代理（每天 10 万次请求额度），部署后 App Secret 只存在于你的 Worker 中，兑换 100% 可靠：
 
 1. 注册/登录 [Cloudflare Dashboard](https://dash.cloudflare.com/)；
 2. 「Workers 和 Pages」→「创建应用程序」→「创建 Worker」，名字随意（如 `bgm-proxy`）；
-3. 点「编辑代码」，用仓库根目录 [cloudflare-worker.js](cloudflare-worker.js) 的完整内容替换示例代码，点「部署」；
+3. 点「编辑代码」，用仓库根目录 [cloudflare-worker.js](cloudflare-worker.js) 的完整内容替换示例代码（按需修改文件顶部的 `APP_URL` / `OAUTH_CLIENT_ID` / `OAUTH_CLIENT_SECRET`），点「部署」；
 4. 复制 Worker 地址（形如 `https://bgm-proxy.你的子域.workers.dev`）；
-5. 打开 Bangumi 保管库 → 设置 → 高级网络设置 → 「API 地址」填入该地址，勾选「登录和收藏同步也使用自定义 API」并保存。
+5. 到 bgm.tv 应用管理把应用的「回调地址」改为：`https://你的Worker地址/oauth/callback`；
+6. 打开 Bangumi 保管库 → 设置 → 高级网络设置 → 「API 地址」填入 Worker 地址，勾选「登录和收藏同步也使用自定义 API」并保存；
+7. 强刷应用页面，点击「通过 OAuth2 登录」。授权完成后会经 Worker 兑换并自动回到应用完成登录。
 
-之后 OAuth2 登录的授权码兑换、Token 刷新和收藏同步都会经过你自己的代理。请勿公开分享该地址（代理不带鉴权）。
+之后 OAuth2 兑换、Token 刷新和收藏同步都会经过你自己的代理。请勿公开分享该地址（代理不带鉴权）。未配置 Worker 时，应用仍会先尝试直连官方端点。
 
 ## 名称说明
 

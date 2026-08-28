@@ -1,23 +1,34 @@
 /**
- * Bangumi 保管库 - 自建 API/OAuth 反向代理（Cloudflare Worker）
+ * Bangumi 保管库 - 自建 OAuth 回调 + API 反向代理（Cloudflare Worker）
  *
- * 作用：解决纯前端网页版的两个问题：
- *   1. bgm.tv 的 OAuth token 兑换接口不带 CORS 头，浏览器无法直接兑换授权码；
- *   2. api.bgm.tv 在部分网络环境下访问不稳定。
+ * 采用与 fankuhub.com 相同的「服务端回调兑换」模式：
+ *   1. 应用跳转 bgm.tv 授权页时，redirect_uri 指向本 Worker 的 /oauth/callback；
+ *   2. 用户授权后，bgm.tv 把授权码回调到本 Worker；
+ *   3. Worker 在服务端用 App Secret 兑换 Access Token（无跨域问题，Secret 不暴露给前端）；
+ *   4. Worker 把 token 通过 URL fragment（#）302 回传给应用页面；
+ *   5. 应用读取 fragment 完成登录。
  *
  * 部署步骤（免费，约 5 分钟）：
  *   1. 注册/登录 https://dash.cloudflare.com ；
- *   2. 左侧菜单「Workers 和 Pages」→「创建应用程序」→「创建 Worker」；
- *   3. 随便取个名字（如 bgm-proxy），点「部署」，然后点「编辑代码」；
- *   4. 删除示例代码，把本文件全部内容粘贴进去，点右上角「部署」；
- *   5. 复制你的 Worker 地址，形如 https://bgm-proxy.你的子域.workers.dev ；
- *   6. 打开 Bangumi 保管库 → 设置 → 高级网络设置 → 「API 地址」填入该地址，
- *      并勾选「登录和收藏同步也使用自定义 API」，保存。
- *   之后 OAuth2 登录和收藏同步都会走你自己的代理，不再受公共中转限流影响。
+ *   2. 「Workers 和 Pages」→「创建应用程序」→「创建 Worker」；
+ *   3. 点「编辑代码」，用本文件全部内容替换示例代码，点「部署」；
+ *   4. 复制 Worker 地址，形如 https://bgm-proxy.你的子域.workers.dev ；
+ *   5. 到 bgm.tv 应用管理（https://bgm.tv/dev/app ）把应用的「回调地址」改为：
+ *      https://你的worker地址/oauth/callback
+ *   6. 打开 Bangumi 保管库 → 设置 → 高级网络设置 → 「API 地址」填入 Worker 地址，
+ *      勾选「登录和收藏同步也使用自定义 API」，保存；
+ *   7. 强刷应用页面，点击「通过 OAuth2 登录」。
  *
- * 免费额度：每天 100,000 次请求，个人使用绰绰有余。
- * 注意：请勿把该代理地址公开分享（它不带鉴权，Secret 也会经由它传输）。
+ * 免费额度：每天 100,000 次请求。请勿把 Worker 地址公开分享（无鉴权）。
  */
+
+// ===== 按需修改以下常量 =====
+// 授权成功后重定向回的应用页面地址
+const APP_URL = 'https://stay206.github.io/-/app/BangumiVault.html';
+// bgm.tv 应用的凭据（建议替换为你自己的；部署后 Secret 只存在于本 Worker 中）
+const OAUTH_CLIENT_ID = 'bgm70046a91ac9e5f951';
+const OAUTH_CLIENT_SECRET = 'aa3dbf03b6675fc558089605a24d5baa';
+// ===========================
 
 const UPSTREAM_API = 'https://api.bgm.tv';
 const UPSTREAM_OAUTH = 'https://bgm.tv';
@@ -31,6 +42,56 @@ const CORS_HEADERS = {
 
 // bangumi API 要求请求携带可识别的 User-Agent。
 const USER_AGENT = 'BangumiVault/1.0 (+https://github.com/stay206/-)';
+
+function redirect(location) {
+  return new Response(null, { status: 302, headers: { Location: location } });
+}
+
+async function handleOAuthCallback(url) {
+  const code = url.searchParams.get('code') || '';
+  const state = url.searchParams.get('state') || '';
+  const oauthError = url.searchParams.get('error') || '';
+
+  if (oauthError || !code) {
+    const reason = oauthError || 'missing_code';
+    return redirect(APP_URL + '?oauth_error=' + encodeURIComponent(reason));
+  }
+
+  try {
+    const response = await fetch(UPSTREAM_OAUTH + '/oauth/access_token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'User-Agent': USER_AGENT,
+      },
+      body: new URLSearchParams({
+        grant_type: 'authorization_code',
+        client_id: OAUTH_CLIENT_ID,
+        client_secret: OAUTH_CLIENT_SECRET,
+        code,
+        // OAuth 规范：兑换时的 redirect_uri 必须与授权时完全一致（即本 Worker 的回调地址）。
+        redirect_uri: 'https://' + url.host + '/oauth/callback',
+      }),
+    });
+    const payload = await response.json();
+    if (!response.ok || !payload.access_token) {
+      const reason = String(payload.error || payload.message || ('HTTP ' + response.status));
+      return redirect(APP_URL + '?oauth_error=' + encodeURIComponent(reason));
+    }
+    // token 通过 URL fragment 回传（fragment 不会发送到服务器，也不会进入浏览记录）。
+    const fragment = new URLSearchParams({
+      access_token: payload.access_token,
+      refresh_token: payload.refresh_token || '',
+      expires_in: String(payload.expires_in || 604800),
+      token_type: payload.token_type || 'Bearer',
+      user_id: String(payload.user_id || ''),
+      state,
+    });
+    return redirect(APP_URL + '#' + fragment.toString());
+  } catch (error) {
+    return redirect(APP_URL + '?oauth_error=' + encodeURIComponent('proxy_exchange_failed: ' + error));
+  }
+}
 
 function filterRequestHeaders(headers) {
   const out = new Headers();
@@ -50,7 +111,13 @@ export default {
     }
 
     const url = new URL(request.url);
-    // /oauth/* 走 bgm.tv 主站（授权码兑换、刷新），其余走 api.bgm.tv。
+
+    // fankuhub 模式：服务端承接 OAuth 回调并兑换授权码。
+    if (url.pathname === '/oauth/callback') {
+      return handleOAuthCallback(url);
+    }
+
+    // 其余路径：通用反向代理（/oauth/* 走 bgm.tv 主站，其他走 api.bgm.tv）。
     const upstreamUrl = url.pathname.startsWith('/oauth/')
       ? UPSTREAM_OAUTH + url.pathname
       : UPSTREAM_API + url.pathname + url.search;
