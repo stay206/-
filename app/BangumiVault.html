@@ -5301,15 +5301,19 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
     const url = `${OAUTH_AUTHORIZE_URL}?client_id=${encodeURIComponent(OAUTH_CLIENT_ID)}&response_type=code&redirect_uri=${encodeURIComponent(oauthRedirectUri())}&state=${encodeURIComponent(stateVal)}`;
     location.href = url;
   }
-  // 参考 Bangumi 系列脚本：api.bgm.tv 的 oauth 端点带 CORS 头，浏览器可直接调用。
+  // 参考 Bangumi 系列脚本：优先直连官方端点，跨域受限时依次尝试支持 POST 的公共 CORS 中转。
   async function oauthTokenRequest(params){
     const body = new URLSearchParams(params).toString();
+    const encoded = encodeURIComponent(OAUTH_TOKEN_URL);
     const targets = [
       'https://api.bgm.tv/oauth/access_token',
       OAUTH_TOKEN_URL,
-      'https://api.cors.lol/?url=' + encodeURIComponent(OAUTH_TOKEN_URL),
-      'https://corsproxy.io/?url=' + encodeURIComponent(OAUTH_TOKEN_URL)
+      'https://test.cors.workers.dev/?' + OAUTH_TOKEN_URL,
+      'https://api.cors.lol/?url=' + encoded,
+      'https://thingproxy.freeboard.io/fetch/' + OAUTH_TOKEN_URL
     ];
+    const isDirect = (url)=> url === OAUTH_TOKEN_URL || url.startsWith('https://api.bgm.tv/');
+    const RELAY_HINTS = ['api key','corsproxy','rate','quota','usage','origin','cors','captcha','proxy'];
     let lastError = null;
     for(const target of targets){
       try{
@@ -5317,7 +5321,14 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
         const raw = await response.text();
         let payload = null; try{ payload = JSON.parse(raw); }catch{}
         if(response.ok && payload?.access_token) return payload;
-        throw Object.assign(new Error(payload ? String(payload.error || payload.message || '授权服务器返回错误') : `HTTP ${response.status}`), {fatal:true});
+        const msg = payload ? String(payload.error_description || payload.error || payload.message || '授权服务器返回错误') : `HTTP ${response.status}`;
+        // 直连通道返回可读响应 → 是 bgm.tv 的真实业务错误（如回调地址不匹配），不再重试；
+        // 中转通道返回 400（中转通常会原样转发 bgm 的校验错误）同样视为业务错误。
+        const lower = msg.toLowerCase();
+        if(isDirect(target) || response.status === 400 || !RELAY_HINTS.some(h => lower.includes(h))){
+          throw Object.assign(new Error(msg), {fatal:true});
+        }
+        lastError = new Error(msg); // 中转自身故障，尝试下一通道
       }catch(error){
         if(error?.fatal) throw error;
         lastError = error;
@@ -5365,7 +5376,7 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
     catch(error){
       const msg = error?.message || error;
       log('loginLog', 'OAuth2 登录失败：' + msg);
-      toast('OAuth2 登录失败：' + msg);
+      toast('OAuth2 登录失败：' + msg + '。若持续失败，可改用「获取 Access Token」手动登录');
     }
   }
   async function refreshOAuthTokenNow(){
