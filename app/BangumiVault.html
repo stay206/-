@@ -5308,8 +5308,8 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
     const encoded = encodeURIComponent(OAUTH_TOKEN_URL);
     const customBase = cleanBaseUrl(state.settings.apiBase, '');
     const targets = [
-      'https://api.bgm.tv/oauth/access_token',
       customBase ? customBase + '/oauth/access_token' : null,
+      'https://api.bgm.tv/oauth/access_token',
       'https://api.chobits.sai.cc/oauth/access_token',
       OAUTH_TOKEN_URL,
       'https://test.cors.workers.dev/?' + OAUTH_TOKEN_URL,
@@ -5319,12 +5319,15 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
     const isDirect = (url)=> url === OAUTH_TOKEN_URL || url.startsWith('https://api.bgm.tv/');
     const RELAY_HINTS = ['api key','corsproxy','rate','quota','usage','origin','cors','captcha','proxy'];
     let lastError = null;
-    for(const target of targets){
+    for(let i = 0; i < targets.length; i++){
+      const target = targets[i];
+      const short = String(target).replace(/^https:\/\//, '').replace('\/oauth/access_token', '');
+      log('loginLog', `兑换通道 ${i + 1}/${targets.length}：${short} …`);
       try{
         const response = await fetch(target, {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body});
         const raw = await response.text();
         let payload = null; try{ payload = JSON.parse(raw); }catch{}
-        if(response.ok && payload?.access_token) return payload;
+        if(response.ok && payload?.access_token){ log('loginLog', `兑换成功（${short}）`); return payload; }
         const msg = payload ? String(payload.error_description || payload.error || payload.message || '授权服务器返回错误') : `HTTP ${response.status}`;
         // 直连通道返回可读响应 → 是 bgm.tv 的真实业务错误（如回调地址不匹配），不再重试；
         // 中转通道返回 400（中转通常会原样转发 bgm 的校验错误）同样视为业务错误。
