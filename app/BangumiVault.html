@@ -4841,12 +4841,14 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
     return queueApiRequest(async()=>{
       const usePrivateApi = options.private !== false && !!String(token || '').trim();
       const base = apiBaseFor(usePrivateApi);
-      const headers = {'Accept':'application/json'};
-      if(usePrivateApi) headers.Authorization = 'Bearer ' + String(token).trim();
+      let requestToken = String(token || '').trim();
+      let oauthRefreshed = false;
       let lastError = null;
       for(let attempt=0; attempt<=API_MAX_RETRIES; attempt++){
         let response = null;
         try{
+          const headers = {'Accept':'application/json'};
+          if(usePrivateApi) headers.Authorization = 'Bearer ' + requestToken;
           response = await fetch(base + path, {headers, mode:'cors', signal:options.signal || activeLongTask?.controller?.signal});
           const raw = await response.text();
           let payload = null;
@@ -4860,6 +4862,17 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
             ? payloadStatus
             : response.status;
           if(!response.ok || payloadError){
+            // OAuth token 过期时（401）自动刷新一次并重试当前请求。
+            if(effectiveStatus === 401 && !oauthRefreshed && state.settings.oauthRefreshToken
+              && requestToken && requestToken === String(state.settings.oauthLastToken || '')){
+              oauthRefreshed = true;
+              try{
+                if(await refreshOAuthTokenNow()){
+                  requestToken = String(state.settings.oauthLastToken || requestToken);
+                  attempt--; continue;
+                }
+              }catch{}
+            }
             const error = Object.assign(
               new Error(apiErrorMessage(effectiveStatus, response.statusText, raw, payloadError)),
               {status:effectiveStatus, retryable:effectiveStatus === 429 || [500,502,503,504].includes(effectiveStatus)}
@@ -5284,10 +5297,11 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
     const url = `${OAUTH_AUTHORIZE_URL}?client_id=${encodeURIComponent(OAUTH_CLIENT_ID)}&response_type=code&redirect_uri=${encodeURIComponent(oauthRedirectUri())}&state=${encodeURIComponent(stateVal)}`;
     location.href = url;
   }
-  // bgm.tv 的 token 接口可能不带 CORS 头：先直连，失败时依次尝试公共 CORS 中转。
+  // 参考 Bangumi 系列脚本：api.bgm.tv 的 oauth 端点带 CORS 头，浏览器可直接调用。
   async function oauthTokenRequest(params){
     const body = new URLSearchParams(params).toString();
     const targets = [
+      'https://api.bgm.tv/oauth/access_token',
       OAUTH_TOKEN_URL,
       'https://api.cors.lol/?url=' + encodeURIComponent(OAUTH_TOKEN_URL),
       'https://corsproxy.io/?url=' + encodeURIComponent(OAUTH_TOKEN_URL)
@@ -5350,20 +5364,24 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
       toast('OAuth2 登录失败：' + msg);
     }
   }
-  async function maybeRefreshOAuthToken(){
+  async function refreshOAuthTokenNow(){
     const refreshToken = state.settings.oauthRefreshToken;
-    if(!refreshToken) return;
+    if(!refreshToken) return false;
+    // 只在当前生效的 token 确实来自 OAuth 时才刷新。
+    const current = readToken();
+    if(!current || current !== state.settings.oauthLastToken) return false;
+    const payload = await oauthTokenRequest({grant_type:'refresh_token', client_id:OAUTH_CLIENT_ID, client_secret:OAUTH_CLIENT_SECRET, refresh_token:refreshToken, redirect_uri:oauthRedirectUri()});
+    applyOAuthToken(payload);
+    await saveState({collections:false, history:false});
+    updateOAuthStatus();
+    return true;
+  }
+  async function maybeRefreshOAuthToken(){
+    if(!state.settings.oauthRefreshToken) return;
     const expiresAt = Number(state.settings.oauthExpiresAt || 0);
     if(!expiresAt || Date.now() < expiresAt - 3600e3) return;
-    // 只在当前生效的 token 确实来自 OAuth 时才自动刷新。
-    const current = readToken();
-    if(!current || current !== state.settings.oauthLastToken) return;
     try{
-      const payload = await oauthTokenRequest({grant_type:'refresh_token', client_id:OAUTH_CLIENT_ID, client_secret:OAUTH_CLIENT_SECRET, refresh_token:refreshToken, redirect_uri:oauthRedirectUri()});
-      applyOAuthToken(payload);
-      await saveState({collections:false, history:false});
-      updateOAuthStatus();
-      console.info('[Bangumi Vault] OAuth2 Access Token 已自动刷新');
+      if(await refreshOAuthTokenNow()) console.info('[Bangumi Vault] OAuth2 Access Token 已自动刷新');
     }catch(error){ console.warn('[Bangumi Vault] OAuth2 自动刷新失败：', error); }
   }
   async function saveSettingsFromUI(){
