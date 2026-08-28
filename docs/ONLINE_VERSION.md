@@ -2,7 +2,7 @@
 
 在线体验地址：
 
-https://akibangumibackup.netlify.app
+https://stay206.github.io/-/
 
 在线网站版是纯前端版本，适合临时使用和快速体验。
 

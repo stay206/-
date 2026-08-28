@@ -48,7 +48,7 @@
 - 本地数据目录中文化为 `资料库/`。
 - 支持旧版 `VaultData/` 自动迁移到 `资料库/`。
 - 整理 GitHub 开源发布文件。
-- 增加在线网站版说明：https://akibangumibackup.netlify.app
+- 增加在线网站版说明：https://stay206.github.io/-/
 
 ## 历史版本
 

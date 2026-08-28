@@ -41,7 +41,7 @@ Start-BangumiVault-Desktop.cmd
 
 在线体验地址：
 
-https://akibangumibackup.netlify.app
+https://stay206.github.io/-/
 
 在线版是纯前端版本，不需要安装。它适合临时查看、简单同步和导出备份，但与桌面版相比有一些限制：
 
