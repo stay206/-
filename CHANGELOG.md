@@ -1,4 +1,11 @@
 
+## v0.31.3
+
+- 取消网页版「缓存当前封面到云端」方案，恢复为桌面版本地目录缓存（网页版无本地服务时提示）。
+- 网页版「读取全部时间胶囊」云端化保留：从云端 vault/timeline.json 读取；桌面版读取后自动同步到云端。
+- GitHub Personal Access Token 新增「获取 Token」按钮，一键跳转 GitHub 创建页并预填 repo 权限。
+- 云端同步合并入「账号与同步」面板；Access Token 改名为「Bangumi Access Token」。
+
 ## v0.31.2
 
 - 云端同步合并入「账号与同步」面板，不再单独成卡。
