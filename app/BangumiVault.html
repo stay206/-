@@ -2826,9 +2826,9 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
             <div class="field token-field">
               <label>GitHub Personal Access Token</label>
               <textarea id="githubTokenInput" rows="4" autocomplete="off" placeholder="粘贴 ghp_… Token。仅保存在本浏览器。"></textarea>
-              <div class="token-actions"><button class="btn small good" id="cloudSaveBtn">保存</button><button class="btn small" id="cloudPushBtn2">同步到云端</button></div>
+              <div class="token-actions"><button class="btn small" id="openGithubTokenBtn">获取 Token</button><button class="btn small good" id="cloudSaveBtn">保存</button><button class="btn small" id="cloudPushBtn2">同步到云端</button></div>
               <div class="token-import-row"><button class="btn small" id="cloudRestoreBtn">从云端恢复</button><span class="help">顶部工具栏也有「同步到云端」。推送/恢复均针对当前配置分支的 vault/state.json。</span></div>
-              <div class="help" style="margin-top:6px">获取方法：打开 GitHub → 右上角头像 → Settings → Developer settings → Personal access tokens → Tokens (classic) → Generate new token，勾选 <b>repo</b> 权限后生成并复制；或使用 Fine-grained token，勾选目标仓库的 <b>Contents: Read and write</b> 权限。</div>
+              <div class="help" style="margin-top:6px">点击「获取 Token」跳转到 GitHub 创建页：经典 Token 勾选 <b>repo</b> 权限；Fine-grained Token 勾选目标仓库的 <b>Contents: Read and write</b> 权限。生成后复制粘贴到上方。</div>
             </div>
             <div>
               <div class="field"><label>仓库</label><input id="githubRepoInput" placeholder="stay206/-" /><div class="help">格式：用户名/仓库名。</div></div>
@@ -2942,6 +2942,7 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
   const DEFAULT_API_BASE = 'https://api.bgm.tv';
   const DEFAULT_SITE_BASE = 'https://bgm.tv';
   const TOKEN_URL = 'https://next.bgm.tv/demo/access-token';
+  const GITHUB_TOKEN_URL = 'https://github.com/settings/tokens/new?scopes=repo&description=Bangumi%20Vault';
   const SUBJECT_TYPES = [2,1,4,3,6];
   const COLLECTION_TYPES = [1,2,3,4,5];
   const STATUS = {0:'全部',1:'想看',2:'看过',3:'在看',4:'搁置',5:'抛弃',99:'安全箱'};
@@ -6451,6 +6452,7 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
     document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>closeModal(b.dataset.close));
     document.querySelectorAll('.modal-mask').forEach(m=>m.addEventListener('click', e=>{ if(e.target===m) closeModal(m.id); }));
     $('openTokenBtn').onclick=()=> window.open(TOKEN_URL,'_blank','noopener'); $('testLoginBtn').onclick=testLogin; $('saveSettingsBtn').onclick=saveSettingsFromUI;
+    if($('openGithubTokenBtn')) $('openGithubTokenBtn').onclick=()=> window.open(GITHUB_TOKEN_URL,'_blank','noopener');
     $('syncBtn').onclick=syncRecent; $('fullSyncBtn').onclick=syncAll; $('cloudSyncBtn').onclick=cloudPush; $('cloudRestoreBtn').onclick=()=>cloudRestore(false);
     if($('cloudSaveBtn')) $('cloudSaveBtn').onclick=async ()=>{
       state.settings.githubToken = $('githubTokenInput').value.trim();

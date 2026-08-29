@@ -1,4 +1,11 @@
 
+## v0.31.2
+
+- 云端同步合并入「账号与同步」面板，不再单独成卡。
+- Access Token 字段改名为「Bangumi Access Token」，与 GitHub Token 区分。
+- GitHub Personal Access Token 新增「获取 Token」按钮，一键跳转 GitHub 创建页并预填 repo 权限。
+- 精简 GitHub Token 获取说明为按钮跳转式引导。
+
 ## v0.31.1
 
 - 新增「同步到云端」按钮，可把本地资料库推送到 GitHub 仓库的「资料库」分支。
