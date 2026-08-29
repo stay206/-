@@ -2779,9 +2779,9 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
         </div>
       </div>
       <div class="filters">
-        <button class="btn small" id="cacheCoversBtn">缓存当前封面到目录</button>
+        <button class="btn small" id="cacheCoversBtn" title="把当前筛选结果的封面上传到云端仓库 vault/covers/；桌面版写入本地目录，网页版写入云端。">缓存当前封面到云端</button>
         <button class="btn small" id="enrichTagsBtn" title="为当前筛选结果刷新条目的公共标签；会覆盖旧的公共标签缓存。">刷新公共标签</button>
-        <button class="btn small" id="readTimelineBtn" title="逐页读取并缓存 Bangumi 时间胶囊，用于匹配条目的首次标记时间。">读取全部时间胶囊</button>
+        <button class="btn small" id="readTimelineBtn" title="桌面版逐页读取并缓存 Bangumi 时间胶囊；网页版从云端读取已同步的时间胶囊。用于匹配条目的首次标记时间。">读取全部时间胶囊</button>
         <span class="pill sync-explain" title="日常同步只读取最近几个月更新的收藏；完整同步才核对所有条目并检查疑似消失。">最近同步 · 本地增量</span>
         <span class="pill" id="filterSummary">全部条目</span>
       </div>
@@ -3617,7 +3617,11 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
     try{
       let loaded = null;
       if(await localApiAvailable()) loaded = await localGetJSON('/api/timeline-cache');
-      else loaded = await idbGet('timeline-cache');
+      else{
+        // 网页版优先从云端读取时间胶囊
+        try{ const cfg=githubConfig(); if(cfg.token){ loaded = await cloudFetchTimeline(cfg); } }catch{}
+        if(!loaded) loaded = await idbGet('timeline-cache');
+      }
       timelineCache = normalizeTimelineCache(loaded);
     }catch(e){ console.warn('timeline cache load failed', e); timelineCache = normalizeTimelineCache(null); }
   }
@@ -5176,7 +5180,11 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
   async function readAllTimeCapsules(){
     const username = String(state.settings.username || state.profile?.username || '').trim();
     if(!username){ toast('\u8bf7\u5148\u5728\u8bbe\u7f6e\u4e2d\u586b\u5199 Bangumi \u7528\u6237\u540d'); return; }
-    if(!(await localApiAvailable())){ toast('\u8bfb\u53d6\u65f6\u95f4\u80f6\u56ca\u9700\u8981\u684c\u9762\u7248\u672c\u5730\u670d\u52a1'); return; }
+    if(!(await localApiAvailable())){
+      // 网页版：从云端读取时间胶囊（无法直接抓取 bgm.tv，依赖已同步到云端的缓存）
+      await readTimelineFromCloud(username);
+      return;
+    }
     const currentBase = siteBase();
     const hasMatchingCache = timelineCache.complete
       && String(timelineCache.username || '') === username
@@ -5243,6 +5251,8 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
         checkpoint_event_id:String(events[0]?.event_id || '')
       };
       await saveTimelineCache();
+      // 桌面版读取完成后，若已配置云端，顺便同步到云端供网页版读取
+      try{ const cfg=githubConfig(); if(cfg.token){ log('syncLog','正在同步时间胶囊到云端…'); await cloudPutTimeline(cfg, normalizeTimelineCache(timelineCache)); log('syncLog','时间胶囊已同步到云端'); } }catch(e){ log('syncLog','时间胶囊同步到云端失败：'+(e?.message||e), 'warn'); }
       const progressMatch = await matchTimelineEpisodesToCollections();
       if(activeDrawerId != null) await openDrawer(activeDrawerId);
       const markCount = Object.keys(marks).length;
@@ -5257,6 +5267,33 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
         log('syncLog', `\u8bfb\u53d6\u5931\u8d25\uff1a${error?.message || error}`, 'error');
         toast('\u65f6\u95f4\u80f6\u56ca\u8bfb\u53d6\u5931\u8d25\uff1a' + (error?.message || error));
       }
+    }finally{
+      finishLongTask(task);
+    }
+  }
+  // 网页版：从云端读取时间胶囊（无法直接抓取 bgm.tv）
+  async function readTimelineFromCloud(username){
+    let cfg; try{ cfg = githubConfig(); }catch(error){ toast(error.message); openModal('settingsModal'); return; }
+    if(!cfg.token){ toast('网页版读取时间胶囊需要先在设置中配置 GitHub 云端同步'); openModal('settingsModal'); return; }
+    const task = beginLongTask('timeline'); if(!task) return;
+    openModal('syncModal'); $('syncLog').textContent=''; setProgress(0);
+    if($('syncTitle')) $('syncTitle').textContent = '从云端读取时间胶囊';
+    if($('syncHelp')) $('syncHelp').textContent = '网页版无法直接抓取 Bangumi，从已同步到云端的时间胶囊缓存读取。';
+    log('syncLog','正在从云端读取时间胶囊…');
+    try{
+      const data = await cloudFetchTimeline(cfg);
+      if(!data){ log('syncLog','云端还没有时间胶囊缓存。请先用桌面版「读取全部时间胶囊」抓取并自动同步到云端。', 'warn'); toast('云端暂无时间胶囊'); finishLongTask(task); return; }
+      timelineCache = normalizeTimelineCache(data);
+      await saveTimelineCache();
+      const progressMatch = await matchTimelineEpisodesToCollections();
+      if(activeDrawerId != null) await openDrawer(activeDrawerId);
+      const markCount = Object.keys(timelineCache.marks || {}).length;
+      log('syncLog', `已从云端恢复 ${timelineCache.events?.length || 0} 条事件，匹配到 ${markCount} 个条目的首次标记时间；已遍历全部资料库并匹配 ${progressMatch.matchedRows} 个条目的 ${progressMatch.matchedEpisodes} 条逐集观看记录。`);
+      render();
+      toast(`已从云端恢复时间胶囊：${timelineCache.events?.length || 0} 条事件`);
+    }catch(error){
+      log('syncLog', `读取云端时间胶囊失败：${error?.message || error}`, 'error');
+      toast('读取云端时间胶囊失败：' + (error?.message || error));
     }finally{
       finishLongTask(task);
     }
@@ -5285,6 +5322,32 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
 
   /* ---- 云端同步：本地资料库 <-> GitHub 仓库「资料库」分支（Contents API 直推方案） ---- */
   const CLOUD_PATH = 'vault/state.json';
+  const CLOUD_TIMELINE_PATH = 'vault/timeline.json';
+  const CLOUD_COVERS_DIR = 'vault/covers';
+  function cloudCoverRawUrl(cfg, id, ext='jpg'){
+    return `https://raw.githubusercontent.com/${cfg.owner}/${cfg.name}/${encodeURIComponent(cfg.branch)}/${CLOUD_COVERS_DIR}/${id}.${ext}`;
+  }
+  function blobToBase64(blob){ return new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>{ const d=String(r.result||''); const i=d.indexOf(','); res(i>=0?d.slice(i+1):d); }; r.onerror=()=>rej(r.error); r.readAsDataURL(blob); }); }
+  async function cloudPutCover(cfg, id, base64, ext='jpg'){
+    const path = `${CLOUD_COVERS_DIR}/${id}.${ext}`;
+    let sha=''; try{ const r=await fetch(`${cfg.api}/contents/${path}?ref=${encodeURIComponent(cfg.branch)}`, {headers:githubHeaders(cfg)}); if(r.status===200) sha=(await r.json())?.sha||''; else if(r.status===401) throw new Error('GitHub Token 无效（401）'); else if(r.status===403) throw new Error('GitHub 拒绝访问（403）'); }catch(error){ if(!/Failed to fetch|NetworkError/i.test(String(error?.message))) throw error; }
+    const put=await fetch(`${cfg.api}/contents/${path}`, {method:'PUT', headers:githubHeaders(cfg,true), body:JSON.stringify({message:`封面 ${id}`, content:base64, branch:cfg.branch, ...(sha?{sha}:{})})});
+    if(!put.ok){ const t=await put.text(); if(put.status===401) throw new Error('GitHub Token 无效（401）'); if(put.status===403) throw new Error('GitHub 拒绝写封面（403）'); throw new Error(`封面上传失败 ${put.status} ${t.slice(0,120)}`); }
+  }
+  async function cloudPutTimeline(cfg, data){
+    const body = JSON.stringify(data);
+    let sha=''; try{ const r=await fetch(`${cfg.api}/contents/${CLOUD_TIMELINE_PATH}?ref=${encodeURIComponent(cfg.branch)}`, {headers:githubHeaders(cfg)}); if(r.status===200) sha=(await r.json())?.sha||''; else if(r.status===401) throw new Error('GitHub Token 无效（401）'); }catch(error){ if(!/Failed to fetch|NetworkError/i.test(String(error?.message))) throw error; }
+    const put=await fetch(`${cfg.api}/contents/${CLOUD_TIMELINE_PATH}`, {method:'PUT', headers:githubHeaders(cfg,true), body:JSON.stringify({message:`时间胶囊同步 ${new Date().toLocaleString('zh-CN')}`, content:encodeBase64Utf8(body), branch:cfg.branch, ...(sha?{sha}:{})})});
+    if(!put.ok){ const t=await put.text(); if(put.status===404) throw new Error(`分支「${cfg.branch}」不存在`); throw new Error(`时间胶囊推送失败 ${put.status}`); }
+    return body.length;
+  }
+  async function cloudFetchTimeline(cfg){
+    try{ const r=await fetch(`https://raw.githubusercontent.com/${cfg.owner}/${cfg.name}/${encodeURIComponent(cfg.branch)}/${CLOUD_TIMELINE_PATH}`, {cache:'no-store'}); if(r.ok) return await r.json(); }catch{}
+    const res=await fetch(`${cfg.api}/contents/${encodeURIComponent(CLOUD_TIMELINE_PATH)}?ref=${encodeURIComponent(cfg.branch)}`, {headers:githubHeaders(cfg)});
+    if(res.status===404) return null;
+    if(!res.ok) throw new Error('读取云端时间胶囊失败：HTTP '+res.status);
+    const info=await res.json(); return JSON.parse(decodeBase64Utf8(info.content));
+  }
   function githubConfig(){
     const repoFull = String(state.settings.githubRepo || 'stay206/-').trim().replace(/^https?:\/\/github\.com\//i, '').replace(/\.git$/i, '');
     const slash = repoFull.indexOf('/');
@@ -5742,7 +5805,7 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
     try{ const cached = await idbGet('img:'+c.subject_id); if(cached?.dataUrl) return cached.dataUrl; }catch{}
     if(offlineData) return offlineData;
     // 没有本地缓存时，不主动在线拉远端图片进 HTML，避免导出完整 ZIP 时大量跨域下载卡住。
-    // 需要离线封面的条目，请先点“缓存当前封面到目录”。
+    // 需要离线封面的条目，请先点“缓存当前封面到云端”。
     return '';
   }
   async function collectCachedImageFiles(arr,onProgress){
@@ -7118,7 +7181,8 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
   const __bvCacheCoversCurrentBase = cacheCoversCurrent;
   cacheCoversCurrent = async function(){
     if(!(await localApiAvailable())){
-      toast('缓存封面到目录需要桌面版本地服务；网页版无法写入本地目录');
+      // 网页版：缓存封面到云端（GitHub 仓库 vault/covers/）
+      await cacheCoversCurrentCloud();
       return;
     }
     await __bvCacheCoversCurrentBase();
@@ -7130,6 +7194,41 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
       }
     }catch{}
   };
+  // 网页版：把当前筛选封面缓存到云端
+  async function cacheCoversCurrentCloud(){
+    const arr = visibleCollections(); if(!arr.length){ toast('没有可缓存的封面'); return; }
+    let cfg; try{ cfg = githubConfig(); }catch(error){ toast(error.message); openModal('settingsModal'); return; }
+    if(!cfg.token){ toast('网页版缓存封面需要先在设置中配置 GitHub 云端同步'); openModal('settingsModal'); return; }
+    const task = beginLongTask('cover-cache'); if(!task) return;
+    try{
+      openModal('syncModal'); $('syncLog').textContent='';
+      if($('syncTitle')) $('syncTitle').textContent = '缓存当前封面到云端';
+      if($('syncHelp')) $('syncHelp').textContent = '把当前筛选结果的封面上传到云端仓库 vault/covers/，读取时走 raw 通道。';
+      log('syncLog', `开始缓存 ${arr.length} 个封面到云端 ${cfg.branch}/vault/covers/...`);
+      setProgress(0);
+      let ok=0, fail=0, skipped=0, i=0, stopped=false;
+      for(const c of arr){
+        if(taskWasCancelled(task)){ stopped=true; break; }
+        i++; setProgress(i/arr.length*100); const id=String(c.subject_id);
+        const cloudUrl = cloudCoverRawUrl(cfg, id);
+        if(c.cover_local_url === cloudUrl){ skipped++; continue; }
+        const url = coverUrl({...c, cover_local_url:'', cover_data_url:''}); if(!url){ fail++; continue; }
+        try{
+          const res = await fetch(url, {mode:'cors', referrerPolicy:'no-referrer'}); if(!res.ok) throw new Error(res.statusText);
+          const blob = await res.blob(); const base64 = await blobToBase64(blob);
+          await cloudPutCover(cfg, id, base64);
+          const row = state.collections[id];
+          if(row){ row.cover_local_url = cloudUrl; row.cover_local_file = `${id}.jpg`; row.cover_cached_at = nowISO(); }
+          ok++; if(i%8===0){ log('syncLog', `已处理 ${i}/${arr.length}`); await saveState(); }
+          await sleep(120);
+        }catch(e){ fail++; if(fail <= 5) log('syncLog', `封面失败 ${id}：${e.message || e}`, 'error'); }
+      }
+      await saveState();
+      if(stopped){ log('syncLog', '封面缓存已终止，已保留本次已上传的封面。', 'warn'); toast('封面缓存已终止，已保留已完成部分。'); finishLongTask(task); return; }
+      log('syncLog', `封面缓存完成：成功 ${ok}，失败 ${fail}，跳过 ${skipped}`); toast(`封面缓存完成：成功 ${ok}，失败 ${fail}`); render(); finishLongTask(task);
+    }catch(error){ log('syncLog', `封面云端缓存失败：${error?.message || error}`, 'error'); toast('封面云端缓存失败：' + (error?.message || error)); }
+    finally{ finishLongTask(task); }
+  }
 
   function installProfileClickGuard(){
     if(window.__bvProfileClickGuardInstalledV5) return;
