@@ -5328,6 +5328,35 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
     return `https://raw.githubusercontent.com/${cfg.owner}/${cfg.name}/${encodeURIComponent(cfg.branch)}/${CLOUD_COVERS_DIR}/${id}.${ext}`;
   }
   function blobToBase64(blob){ return new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>{ const d=String(r.result||''); const i=d.indexOf(','); res(i>=0?d.slice(i+1):d); }; r.onerror=()=>rej(r.error); r.readAsDataURL(blob); }); }
+  // 网页版封面获取：先 fetch blob，失败再用 img+canvas（crossOrigin），再失败尝试经图片代理
+  async function fetchCoverAsBase64(url){
+    // 1. 直接 fetch
+    try{ const r = await fetch(url, {mode:'cors', referrerPolicy:'no-referrer'}); if(r.ok){ const b = await r.blob(); if(b.size > 0) return await blobToBase64(b); } }catch{}
+    // 2. img + canvas（要求图片源支持 CORS）
+    const viaCanvas = ()=> new Promise((resolve, reject)=>{
+      const img = new Image(); img.crossOrigin = 'anonymous';
+      img.onload = ()=>{ try{ const c=document.createElement('canvas'); c.width=img.naturalWidth||1; c.height=img.naturalHeight||1; c.getContext('2d').drawImage(img,0,0); const d=c.toDataURL('image/jpeg',0.92); const i=d.indexOf(','); resolve(i>=0?d.slice(i+1):d); }catch(e){ reject(e); } };
+      img.onerror = ()=>reject(new Error('图片跨域加载失败'));
+      img.src = url;
+    });
+    try{ return await viaCanvas(); }catch{}
+    // 3. 经图片代理重试（若配置了 imageProxyBase 且代理后的 URL 不同）
+    const proxy = imageProxyBase();
+    if(proxy){
+      const proxied = rewriteImageUrl(url);
+      if(proxied !== url){
+        try{ const r = await fetch(proxied, {mode:'cors', referrerPolicy:'no-referrer'}); if(r.ok){ const b = await r.blob(); if(b.size > 0) return await blobToBase64(b); } }catch{}
+        const viaProxyCanvas = ()=> new Promise((resolve, reject)=>{
+          const img = new Image(); img.crossOrigin = 'anonymous';
+          img.onload = ()=>{ try{ const c=document.createElement('canvas'); c.width=img.naturalWidth||1; c.height=img.naturalHeight||1; c.getContext('2d').drawImage(img,0,0); const d=c.toDataURL('image/jpeg',0.92); const i=d.indexOf(','); resolve(i>=0?d.slice(i+1):d); }catch(e){ reject(e); } };
+          img.onerror = ()=>reject(new Error('代理图片加载失败'));
+          img.src = proxied;
+        });
+        try{ return await viaProxyCanvas(); }catch{}
+      }
+    }
+    throw new Error('封面获取失败（跨域或失效），可在高级网络设置配置图片代理');
+  }
   async function cloudPutCover(cfg, id, base64, ext='jpg'){
     const path = `${CLOUD_COVERS_DIR}/${id}.${ext}`;
     let sha=''; try{ const r=await fetch(`${cfg.api}/contents/${path}?ref=${encodeURIComponent(cfg.branch)}`, {headers:githubHeaders(cfg)}); if(r.status===200) sha=(await r.json())?.sha||''; else if(r.status===401) throw new Error('GitHub Token 无效（401）'); else if(r.status===403) throw new Error('GitHub 拒绝访问（403）'); }catch(error){ if(!/Failed to fetch|NetworkError/i.test(String(error?.message))) throw error; }
@@ -7214,8 +7243,7 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
         if(c.cover_local_url === cloudUrl){ skipped++; continue; }
         const url = coverUrl({...c, cover_local_url:'', cover_data_url:''}); if(!url){ fail++; continue; }
         try{
-          const res = await fetch(url, {mode:'cors', referrerPolicy:'no-referrer'}); if(!res.ok) throw new Error(res.statusText);
-          const blob = await res.blob(); const base64 = await blobToBase64(blob);
+          const base64 = await fetchCoverAsBase64(url);
           await cloudPutCover(cfg, id, base64);
           const row = state.collections[id];
           if(row){ row.cover_local_url = cloudUrl; row.cover_local_file = `${id}.jpg`; row.cover_cached_at = nowISO(); }
