@@ -20,7 +20,7 @@ if not exist "node_modules\electron\dist\electron.exe" (
 
 if not exist "node_modules\electron\dist\electron.exe" (
   echo [Bangumi Vault] Electron executable is missing. Repairing runtime...
-  powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0Install-Electron-Runtime.ps1" -Version 37.2.6 -Mirror "%ELECTRON_MIRROR%"
+  powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0Install-Electron-Runtime.ps1" -Version 39.8.10 -Mirror "%ELECTRON_MIRROR%"
   if errorlevel 1 exit /b 1
 )
 

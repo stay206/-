@@ -5,6 +5,7 @@ const desktopApi = {
   minimize: () => ipcRenderer.invoke('window:minimize'),
   toggleMaximize: () => ipcRenderer.invoke('window:toggle-maximize'),
   getWindowState: () => ipcRenderer.invoke('window:get-state'),
+  setTheme: theme => ipcRenderer.invoke('window:set-theme', theme),
   close: () => ipcRenderer.invoke('window:close'),
   openDataDir: () => ipcRenderer.invoke('app:open-data-dir'),
   getInfo: () => ipcRenderer.invoke('app:get-info')
@@ -23,7 +24,157 @@ async function syncWindowCornerModeFromHost() {
   } catch {}
 }
 
+let lastWindowTheme = '';
+
+function syncWindowThemeFromDocument(force = false) {
+  if (!hasNativeWindowControls) return;
+  const theme = document.documentElement.getAttribute('data-theme');
+  if (theme !== 'light' && theme !== 'dark') return;
+  if (!force && theme === lastWindowTheme) return;
+  lastWindowTheme = theme;
+  desktopApi.setTheme(theme).catch(() => {
+    if (lastWindowTheme === theme) lastWindowTheme = '';
+  });
+}
+
+function watchWindowTheme() {
+  syncWindowThemeFromDocument(true);
+  if (!hasNativeWindowControls) return;
+  const observer = new MutationObserver(() => syncWindowThemeFromDocument());
+  observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+}
+
 ipcRenderer.on('window:state', (_event, state) => syncWindowCornerMode(state?.maximized));
+
+const POINTER_TILT_ENTRY_SELECTOR = [
+  '.chronicle-event',
+  '.chronicle-blog-row',
+  '.chronicle-index-row',
+  '.chronicle-directory-row',
+  '.chronicle-list-row',
+  '.chronicle-otd-card',
+  '.chronicle-mini-index',
+  '.chronicle-related-chip',
+  '.chronicle-preview-card'
+].join(',');
+
+const POINTER_TILT_COVER_SELECTOR = [
+  '.chronicle-event-cover',
+  '.chronicle-blog-thumb',
+  '.chronicle-mosaic',
+  '.chronicle-extra-image',
+  '.chronicle-otd-cover',
+  '.chronicle-related-chip img',
+  '.chronicle-preview-cover'
+].join(',');
+
+function installPointerCoverTilt() {
+  if (document.getElementById('bangumi-pointer-cover-tilt-style')) return;
+
+  const scopedCoverSelectors = POINTER_TILT_COVER_SELECTOR
+    .split(',')
+    .map(selector => `html:not(.bangumi-offline-export) ${selector}`)
+    .join(',');
+  const style = document.createElement('style');
+  style.id = 'bangumi-pointer-cover-tilt-style';
+  style.textContent = `
+    ${scopedCoverSelectors} {
+      transform-origin: center center;
+      backface-visibility: hidden;
+      transition: transform .28s cubic-bezier(.22,1,.36,1), box-shadow .2s ease;
+    }
+    html:not(.bangumi-offline-export) .bv-pointer-cover-tilting {
+      transform: perspective(760px) rotateX(var(--bv-cover-rx,0deg)) rotateY(var(--bv-cover-ry,0deg)) translateY(-2px) scale(1.035) translateZ(0) !important;
+      transform-style: preserve-3d;
+      will-change: transform;
+      transition: transform .075s linear, box-shadow .2s ease !important;
+    }
+    html[data-motion="soft"]:not(.bangumi-offline-export) .bv-pointer-cover-tilting {
+      transform: perspective(760px) rotateX(var(--bv-cover-rx,0deg)) rotateY(var(--bv-cover-ry,0deg)) translateY(-1px) scale(1.018) translateZ(0) !important;
+    }
+    html[data-motion="off"]:not(.bangumi-offline-export) .bv-pointer-cover-tilting {
+      transform: none !important;
+      will-change: auto;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      html:not(.bangumi-offline-export) .bv-pointer-cover-tilting {
+        transform: none !important;
+        transition: none !important;
+        will-change: auto;
+      }
+    }
+  `;
+  document.head.appendChild(style);
+
+  const root = document.documentElement;
+  const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)');
+  let active = null;
+  let pending = null;
+  let frame = 0;
+
+  const resetActive = () => {
+    pending = null;
+    if (!active) return;
+    active.cover.classList.remove('bv-pointer-cover-tilting');
+    active.cover.style.removeProperty('--bv-cover-rx');
+    active.cover.style.removeProperty('--bv-cover-ry');
+    active = null;
+  };
+
+  const resolveTiltTarget = target => {
+    const entry = target?.closest?.(POINTER_TILT_ENTRY_SELECTOR);
+    if (!entry) return null;
+    const cover = entry.querySelector(POINTER_TILT_COVER_SELECTOR);
+    return cover ? { entry, cover } : null;
+  };
+
+  const applyTilt = () => {
+    frame = 0;
+    const next = pending;
+    pending = null;
+    if (!next || !next.cover.isConnected) return;
+    next.cover.style.setProperty('--bv-cover-rx', next.rx.toFixed(2) + 'deg');
+    next.cover.style.setProperty('--bv-cover-ry', next.ry.toFixed(2) + 'deg');
+    next.cover.classList.add('bv-pointer-cover-tilting');
+  };
+
+  const queueTilt = event => {
+    if ((event.pointerType && event.pointerType !== 'mouse' && event.pointerType !== 'pen') || root.dataset.motion === 'off' || reducedMotion?.matches) {
+      resetActive();
+      return;
+    }
+    const next = resolveTiltTarget(event.target);
+    if (!next) {
+      resetActive();
+      return;
+    }
+    if (active?.cover !== next.cover) resetActive();
+    active = next;
+    const rect = next.entry.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) return;
+    const px = Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width));
+    const py = Math.min(1, Math.max(0, (event.clientY - rect.top) / rect.height));
+    const strength = root.dataset.motion === 'soft' ? .42 : 1;
+    pending = {
+      cover: next.cover,
+      rx: (.5 - py) * 9 * strength,
+      ry: (px - .5) * 10.5 * strength
+    };
+    if (!frame) frame = requestAnimationFrame(applyTilt);
+  };
+
+  document.addEventListener('pointerover', queueTilt, { passive: true });
+  document.addEventListener('pointermove', queueTilt, { passive: true });
+  document.addEventListener('pointerout', event => {
+    if (active?.entry.contains(event.relatedTarget)) return;
+    resetActive();
+  }, { passive: true });
+  document.addEventListener('pointercancel', resetActive, { passive: true });
+  window.addEventListener('blur', resetActive);
+  reducedMotion?.addEventListener?.('change', event => { if (event.matches) resetActive(); });
+  new MutationObserver(() => { if (root.dataset.motion === 'off') resetActive(); })
+    .observe(root, { attributes: true, attributeFilter: ['data-motion'] });
+}
 
 function injectDesktopTitlebar() {
   if (document.getElementById('bangumi-desktop-titlebar')) return;
@@ -206,7 +357,18 @@ function injectDesktopTitlebar() {
 }
 
 window.addEventListener('DOMContentLoaded', () => {
-  injectDesktopTitlebar();
+  // 新界面 1.0（玻璃拟态）自带悬浮顶栏和拖拽区：此时注入旧版桌面标题栏会
+  // 盖住整个顶部（z-index 最大 + 整条拖拽区吃掉点击）并用 !important 压扁
+  // .app 的顶部内边距，造成“UI 被挡住 / 玻璃透不过去”。仅经典界面才注入。
+  const pageOwnsShell = !!document.getElementById('bvTopbar')
+    || document.documentElement.getAttribute('data-bv-ui') === 'lg26';
+  if (!pageOwnsShell) injectDesktopTitlebar();
+  else document.title = 'Bangumi 保管库';
   syncWindowCornerModeFromHost();
-  window.addEventListener('focus', syncWindowCornerModeFromHost);
+  watchWindowTheme();
+  installPointerCoverTilt();
+  window.addEventListener('focus', () => {
+    syncWindowCornerModeFromHost();
+    syncWindowThemeFromDocument(true);
+  });
 }, { once: true });

@@ -10,7 +10,7 @@ if errorlevel 1 (
   exit /b 1
 )
 
-set "ELECTRON_VERSION=31.7.7"
+set "ELECTRON_VERSION=39.8.10"
 set "ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/"
 set "npm_config_registry=https://registry.npmmirror.com"
 set "npm_config_cache=%CD%\.npm-cache"
