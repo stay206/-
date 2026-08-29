@@ -765,11 +765,11 @@
     #settingsModal .settings-board{
       display:grid!important;
       grid-template-columns:minmax(480px,1.18fr) minmax(410px,1fr) minmax(350px,.88fr)!important;
-      grid-template-rows:auto auto!important;
+      grid-template-rows:auto auto auto!important;
       grid-template-areas:
         "account theme motion"
-        "display network network"
-        "cloud cloud cloud"!important;
+        "cloud network network"
+        "display display display"!important;
       grid-auto-flow:row!important;
       gap:14px 14px!important;
       align-items:start!important;
@@ -794,7 +794,7 @@
     #settingsModal .settings-panel.motion{grid-area:motion!important;}
     #settingsModal .settings-panel.display{grid-area:display!important;}
     #settingsModal .settings-panel.network-panel{grid-area:network!important;height:auto!important;padding:0!important;border:0!important;background:transparent!important;}
-    #settingsModal .settings-panel.cloud-panel{grid-area:cloud!important;height:auto!important;padding:0!important;border:0!important;background:transparent!important;align-self:start!important;}
+    #settingsModal .settings-panel.cloud-panel{grid-area:cloud!important;align-self:start!important;}
     #settingsModal .settings-panel h3{margin-bottom:10px!important;line-height:1.25!important;}
     #settingsModal .settings-panel .field{display:block!important;margin:0!important;}
     #settingsModal .settings-panel .field + .field{margin-top:10px!important;}
@@ -897,8 +897,8 @@
     #settingsModal .settings-board{
       display:grid!important;
       grid-template-columns:minmax(470px,1.15fr) minmax(390px,1fr) minmax(330px,.86fr)!important;
-      grid-template-rows:auto auto!important;
-      grid-template-areas:"account theme motion" "display network network" "cloud cloud cloud"!important;
+      grid-template-rows:auto auto auto!important;
+      grid-template-areas:"account theme motion" "cloud network network" "display display display"!important;
       gap:14px!important;
       align-items:start!important;
       flex:0 0 auto!important;
@@ -908,7 +908,7 @@
     }
     #settingsModal .settings-column{display:contents!important}
     #settingsModal .settings-panel{height:auto!important;min-height:0!important;align-self:start!important;padding:14px!important;border:var(--ui-border-width) solid var(--line)!important;background:rgba(255,255,255,.052)!important;box-sizing:border-box!important}
-    #settingsModal .settings-panel.account{grid-area:account!important}.settings-panel.theme{grid-area:theme!important}.settings-panel.motion{grid-area:motion!important}.settings-panel.display{grid-area:display!important}.settings-panel.network-panel{grid-area:network!important;height:auto!important;padding:0!important;border:0!important;background:transparent!important}#settingsModal .settings-panel.cloud-panel{grid-area:cloud!important;height:auto!important;padding:0!important;border:0!important;background:transparent!important;align-self:start!important}
+    #settingsModal .settings-panel.account{grid-area:account!important}.settings-panel.theme{grid-area:theme!important}.settings-panel.motion{grid-area:motion!important}.settings-panel.display{grid-area:display!important}.settings-panel.network-panel{grid-area:network!important;height:auto!important;padding:0!important;border:0!important;background:transparent!important}#settingsModal .settings-panel.cloud-panel{grid-area:cloud!important;align-self:start!important}
     #settingsModal .settings-panel h3{margin:0 0 10px!important;line-height:1.2!important;font-size:14px!important}
     #settingsModal .settings-panel .field{display:block!important;margin:0!important}.settings-panel .field+.field{margin-top:9px!important}
     #settingsModal .settings-panel .field label{display:block!important;margin:0 0 7px!important;line-height:18px!important;min-height:18px!important;white-space:nowrap!important}
@@ -985,8 +985,8 @@
       padding:0 3px 2px 0!important;
       display:grid!important;
       grid-template-columns:420px minmax(370px,1fr) 330px!important;
-      grid-template-rows:auto auto!important;
-      grid-template-areas:"account theme motion" "display network network" "cloud cloud cloud"!important;
+      grid-template-rows:auto auto auto!important;
+      grid-template-areas:"account theme motion" "cloud network network" "display display display"!important;
       gap:14px!important;
       align-content:start!important;
       align-items:start!important;
@@ -997,7 +997,7 @@
     #settingsModal .settings-panel.motion{grid-area:motion!important;}
     #settingsModal .settings-panel.display{grid-area:display!important;}
     #settingsModal .settings-panel.network-panel{grid-area:network!important;height:auto!important;padding:0!important;border:0!important;background:transparent!important;}
-    #settingsModal .settings-panel.cloud-panel{grid-area:cloud!important;height:auto!important;padding:0!important;border:0!important;background:transparent!important;align-self:start!important;}
+    #settingsModal .settings-panel.cloud-panel{grid-area:cloud!important;align-self:start!important;}
     #settingsModal .settings-panel h3{margin:0 0 10px!important;font-size:14px!important;line-height:1.2!important;}
     #settingsModal .settings-token-grid{display:grid!important;grid-template-columns:minmax(0,1fr) 180px!important;gap:12px!important;align-items:start!important;}
     #settingsModal .settings-panel textarea#tokenInput{height:92px!important;min-height:92px!important;resize:none!important;}
@@ -1091,9 +1091,9 @@
       grid-template-columns:minmax(430px,1.08fr) minmax(410px,1fr) minmax(340px,.84fr)!important;
       grid-template-areas:
         "account theme motion"
-        "display network network"
-        "cloud cloud cloud"!important;
-      grid-template-rows:max-content max-content!important;
+        "cloud network network"
+        "display display display"!important;
+      grid-template-rows:max-content max-content max-content!important;
       gap:18px 14px!important;
       align-items:start!important;
       scrollbar-gutter:stable!important;
@@ -1105,7 +1105,7 @@
     #settingsModal .settings-panel.motion{grid-area:motion!important;}
     #settingsModal .settings-panel.display{grid-area:display!important;}
     #settingsModal .settings-panel.network-panel{grid-area:network!important;margin-top:0!important;height:auto!important;padding:0!important;border:0!important;background:transparent!important;}
-    #settingsModal .settings-panel.cloud-panel{grid-area:cloud!important;margin-top:0!important;height:auto!important;padding:0!important;border:0!important;background:transparent!important;align-self:start!important;}
+    #settingsModal .settings-panel.cloud-panel{grid-area:cloud!important;margin-top:0!important;align-self:start!important;}
 
     #settingsModal .settings-token-grid{
       grid-template-columns:minmax(240px,1fr) minmax(150px,190px)!important;
@@ -2829,6 +2829,23 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
           </div>
         </section>
 
+        <section class="settings-panel cloud-panel">
+          <h3>云端同步（GitHub 仓库）</h3>
+          <div class="settings-token-grid">
+            <div class="field token-field">
+              <label>GitHub Personal Access Token</label>
+              <textarea id="githubTokenInput" rows="5" autocomplete="off" placeholder="粘贴 ghp_… Token。仅保存在本浏览器。"></textarea>
+              <div class="token-actions"><button class="btn small good" id="cloudSaveBtn">保存</button><button class="btn small" id="cloudPushBtn2">同步到云端</button></div>
+              <div class="token-import-row"><button class="btn small" id="cloudRestoreBtn">从云端恢复</button><span class="help">顶部工具栏也有「同步到云端」。推送/恢复均针对当前配置分支的 vault/state.json。</span></div>
+            </div>
+            <div>
+              <div class="field"><label>仓库</label><input id="githubRepoInput" placeholder="stay206/-" /><div class="help">格式：用户名/仓库名。</div></div>
+              <div class="field"><label>分支</label><input id="githubBranchInput" placeholder="资料库" /><div class="help">数据写入该分支的 vault/state.json。</div></div>
+            </div>
+          </div>
+          <div class="network-warning" style="margin-top:8px">Token 需要 Contents 读写权限（经典 Token 勾选 repo；Fine-grained Token 勾选本仓库的 Contents: Read and write）。仓库公开时，备份内容任何人都能读取；GitHub Token 永远不会写入云端数据。本地浏览器库仍是主数据源，云端用于跨设备恢复。</div>
+        </section>
+
         <section class="settings-panel display">
           <h3>显示细节</h3>
           <div class="settings-form-grid three">
@@ -2874,7 +2891,6 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
               </div>
               <label class="checkbox-row network-check"><input type="checkbox" id="customApiPrivateInput" /> <span>登录和收藏同步也使用自定义 API</span></label>
               <div class="network-warning">开启后 Access Token 会经过自定义 API。只建议使用自己部署或完全信任的反代；不开启时私有同步仍走官方 API。</div>
-              <div class="token-actions"><button class="btn small" id="cloudSettingsBtn">云端同步设置（GitHub 仓库）</button></div>
             </div></div>
           </details>
         </section>
@@ -2901,57 +2917,6 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
       <p class="help" id="syncHelp">日常同步只读取最近几个月的更新并增量写入；完整同步才做全量核对和安全箱判断。</p>
       <div class="progress"><div class="bar" id="syncBar"></div></div>
       <div class="sync-log" id="syncLog" style="margin-top:14px"></div>
-    </div>
-  </div>
-
-  <div class="modal-mask" id="cloudSyncModal">
-    <div class="modal-card settings-card" style="max-width:1060px">
-      <div class="settings-head">
-        <div>
-          <h2>云端同步</h2>
-          <p>把本地资料库提交并推送到 GitHub 仓库指定分支，跨设备恢复时从此分支读取。GitHub Token 永远不会写入云端数据。</p>
-        </div>
-        <div class="grow"></div>
-        <button class="btn small" data-close="cloudSyncModal">关闭</button>
-      </div>
-      <div class="settings-board" style="grid-template-columns:1fr!important;">
-        <section class="settings-panel account">
-          <h3>账号与同步（云端 · GitHub 仓库）</h3>
-          <div class="settings-token-grid">
-            <div class="field token-field">
-              <label>GitHub Personal Access Token</label>
-              <textarea id="githubTokenInput" rows="5" autocomplete="off" placeholder="粘贴 ghp_… Token。仅保存在本浏览器。&#10;需要 Contents 读写权限：经典 Token 勾选 repo；Fine-grained Token 勾选本仓库的 Contents: Read and write。"></textarea>
-              <div class="token-actions">
-                <button class="btn small good" id="cloudSaveBtn">保存</button>
-              </div>
-              <div class="token-import-row">
-                <button class="btn small" id="cloudPushBtn2">同步到云端</button>
-                <span class="help">顶部工具栏也有同款按钮。推送到当前配置分支的 vault/state.json。</span>
-              </div>
-            </div>
-            <div>
-              <div class="field">
-                <label>仓库</label>
-                <input id="githubRepoInput" placeholder="stay206/-" />
-                <div class="help">格式：用户名/仓库名。</div>
-              </div>
-              <div class="field">
-                <label>分支</label>
-                <input id="githubBranchInput" placeholder="资料库" />
-                <div class="help">数据写入该分支的 vault/state.json。</div>
-              </div>
-              <div class="remember-row">
-                <label class="checkbox-row" style="visibility:hidden"><input type="checkbox" disabled /></label>
-                <span class="help">—</span>
-              </div>
-            </div>
-          </div>
-          <div class="token-actions" style="margin-top:12px">
-            <button class="btn small" id="cloudRestoreBtn">从云端恢复</button>
-          </div>
-          <div class="network-warning" style="margin-top:10px">若仓库是公开的，云端备份内容（收藏、吐槽等）任何人都能通过分支读取。本地浏览器库仍是主数据源，云端用于跨设备恢复。</div>
-        </section>
-      </div>
     </div>
   </div>
 
@@ -6495,7 +6460,6 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
     document.querySelectorAll('.modal-mask').forEach(m=>m.addEventListener('click', e=>{ if(e.target===m) closeModal(m.id); }));
     $('openTokenBtn').onclick=()=> window.open(TOKEN_URL,'_blank','noopener'); $('testLoginBtn').onclick=testLogin; $('saveSettingsBtn').onclick=saveSettingsFromUI;
     $('syncBtn').onclick=syncRecent; $('fullSyncBtn').onclick=syncAll; $('cloudSyncBtn').onclick=cloudPush; $('cloudRestoreBtn').onclick=()=>cloudRestore(false);
-    if($('cloudSettingsBtn')) $('cloudSettingsBtn').onclick=()=>{ fillSettingsUI(); openModal('cloudSyncModal'); };
     if($('cloudSaveBtn')) $('cloudSaveBtn').onclick=async ()=>{
       state.settings.githubToken = $('githubTokenInput').value.trim();
       state.settings.githubRepo = $('githubRepoInput').value.trim();
@@ -6508,7 +6472,6 @@ html.theme-fast-switch .card,html.theme-fast-switch .poster-grid,html.theme-fast
       state.settings.githubRepo = $('githubRepoInput').value.trim();
       state.settings.githubBranch = $('githubBranchInput').value.trim();
       await saveState({collections:false, history:false});
-      closeModal('cloudSyncModal');
       cloudPush();
     };
     $('resumeSyncBtn').onclick=()=>{ if(activeLongTask && !activeLongTask.finished) openModal('syncModal'); };
