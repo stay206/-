@@ -6629,8 +6629,9 @@ html.electron-exact-effect{--bv-top-off:calc(var(--topbar-h) + 46px)}
         </div>
         <select class="hidden" id="sortSelect" aria-label="排序"><option value="updated_desc">按更新时间新到旧</option><option value="updated_asc">按更新时间旧到新</option><option value="rate_desc">按我的评分高到低</option><option value="name_asc">按标题 A-Z</option><option value="first_seen_desc">按首次备份新到旧</option></select>
         <div class="bv-tools" id="bvTools">
-          <button class="btn" id="bvToolsBtn" type="button" aria-haspopup="true" aria-expanded="false" aria-label="工具" title="打开工具菜单"><svg class="bvic" width="14" height="14"><use href="#bvi-tools"/></svg><span>工具</span><u class="bv-tools-badge">3</u></button>
+          <button class="btn" id="bvToolsBtn" type="button" aria-haspopup="true" aria-expanded="false" aria-label="工具" title="打开工具菜单"><svg class="bvic" width="14" height="14"><use href="#bvi-tools"/></svg><span>工具</span><u class="bv-tools-badge">4</u></button>
           <div class="bv-tools-menu bv-lgm" id="bvToolsMenu" role="menu" hidden>
+            <button class="btn small" id="cloudSyncBtn" title="把本地资料库数据提交并推送到 GitHub 仓库的「资料库」分支；需在设置中配置 GitHub Token。"><svg class="bvic" width="14" height="14"><use href="#bvi-shield"/></svg><span>同步到云端</span></button>
             <button class="btn small" id="cacheCoversBtn"><svg class="bvic" width="14" height="14"><use href="#bvi-img"/></svg><span>缓存当前封面到目录</span></button>
             <button class="btn small" id="enrichTagsBtn" title="为当前筛选结果刷新条目的公共标签；会覆盖旧的公共标签缓存。"><svg class="bvic" width="14" height="14"><use href="#bvi-tag"/></svg><span>刷新公共标签</span></button>
             <button class="btn small" id="readTimelineBtn" title="逐页读取并缓存 Bangumi 时间胶囊，用于匹配条目的首次标记时间。"><svg class="bvic" width="14" height="14"><use href="#bvi-clock"/></svg><span>读取全部时间胶囊</span></button>
@@ -10931,13 +10932,13 @@ html.electron-exact-effect{--bv-top-off:calc(var(--topbar-h) + 46px)}
     bindTagSearchControls();
     bindNetworkSettingsAnimation();
     if($('useCustomFontBtn')) $('useCustomFontBtn').onclick = async () => { state.settings.fontFamily = 'custom'; state.settings.customFont = String($('customFontInput')?.value || '').trim(); applyAppearance(false); refreshSegmentedControls(); await saveState({collections:false, history:false}); toast('已应用自定义字体'); };
-    $('settingsBtn').onclick=()=>{ fillSettingsUI(); openModal('settingsModal'); };
-    $('exportBtn').onclick=()=> openModal('exportModal');
+    if($('settingsBtn')) $('settingsBtn').onclick=()=>{ fillSettingsUI(); openModal('settingsModal'); };
+    if($('exportBtn')) $('exportBtn').onclick=()=> openModal('exportModal');
     document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>closeModal(b.dataset.close));
     document.querySelectorAll('.modal-mask').forEach(m=>m.addEventListener('click', e=>{ if(e.target===m) closeModal(m.id); }));
-    $('openTokenBtn').onclick=()=> window.open(TOKEN_URL,'_blank','noopener'); $('testLoginBtn').onclick=testLogin; $('saveSettingsBtn').onclick=saveSettingsFromUI;
+    if($('openTokenBtn')) $('openTokenBtn').onclick=()=> window.open(TOKEN_URL,'_blank','noopener'); if($('testLoginBtn')) $('testLoginBtn').onclick=testLogin; if($('saveSettingsBtn')) $('saveSettingsBtn').onclick=saveSettingsFromUI;
     if($('openGithubTokenBtn')) $('openGithubTokenBtn').onclick=()=> window.open(GITHUB_TOKEN_URL,'_blank','noopener');
-    $('syncBtn').onclick=syncRecent; $('fullSyncBtn').onclick=syncAll; $('cloudSyncBtn').onclick=cloudPush; $('cloudRestoreBtn').onclick=()=>cloudRestore(false);
+    if($('syncBtn')) $('syncBtn').onclick=syncRecent; if($('fullSyncBtn')) $('fullSyncBtn').onclick=syncAll; if($('cloudSyncBtn')) $('cloudSyncBtn').onclick=cloudPush; if($('cloudRestoreBtn')) $('cloudRestoreBtn').onclick=()=>cloudRestore(false);
     if($('cloudSaveBtn')) $('cloudSaveBtn').onclick=async ()=>{
       state.settings.githubToken = $('githubTokenInput').value.trim();
       state.settings.githubRepo = $('githubRepoInput').value.trim();
@@ -10952,11 +10953,11 @@ html.electron-exact-effect{--bv-top-off:calc(var(--topbar-h) + 46px)}
       await saveState({collections:false, history:false});
       cloudPush();
     };
-    $('resumeSyncBtn').onclick=()=>{ if(activeLongTask && !activeLongTask.finished) openModal('syncModal'); };
-    $('cancelSyncBtn').onclick=()=>{ closeModal('syncModal'); toast('任务仍在后台继续，可正常搜索和浏览'); };
-    $('stopSyncBtn').onclick=stopLongTask;
-    $('searchInput').oninput=e=>{ resetRenderLimit(); filters.q=e.target.value; syncMainSearchClear(); renderCards(); };
-    $('searchClearBtn').onclick=()=>{
+    if($('resumeSyncBtn')) $('resumeSyncBtn').onclick=()=>{ if(activeLongTask && !activeLongTask.finished) openModal('syncModal'); };
+    if($('cancelSyncBtn')) $('cancelSyncBtn').onclick=()=>{ closeModal('syncModal'); toast('任务仍在后台继续，可正常搜索和浏览'); };
+    if($('stopSyncBtn')) $('stopSyncBtn').onclick=stopLongTask;
+    if($('searchInput')) $('searchInput').oninput=e=>{ resetRenderLimit(); filters.q=e.target.value; syncMainSearchClear(); renderCards(); };
+    if($('searchClearBtn')) $('searchClearBtn').onclick=()=>{
       const input = $('searchInput');
       if(!input) return;
       input.value = '';
@@ -10964,15 +10965,15 @@ html.electron-exact-effect{--bv-top-off:calc(var(--topbar-h) + 46px)}
       input.focus({preventScroll:true});
     };
     syncMainSearchControl();
-    $('typeFilter').onchange=e=>{ resetRenderLimit(); filters.type=Number(e.target.value); filters.tag='全部'; render(); };
-    $('sortSelect').onchange=e=>{ resetRenderLimit(); filters.sort=e.target.value; renderCards(); };
-    $('themeBtn').onclick=(e)=>{
+    if($('typeFilter')) $('typeFilter').onchange=e=>{ resetRenderLimit(); filters.type=Number(e.target.value); filters.tag='全部'; render(); };
+    if($('sortSelect')) $('sortSelect').onchange=e=>{ resetRenderLimit(); filters.sort=e.target.value; renderCards(); };
+    if($('themeBtn')) $('themeBtn').onclick=(e)=>{
       animateThemeButton(effectiveTheme() === 'dark' ? 'light' : 'dark');
       toggleTheme(e);
     };
-    $('cacheCoversBtn').onclick=cacheCoversCurrent; if($('enrichTagsBtn')) $('enrichTagsBtn').onclick=enrichPublicTagsCurrent; if($('readTimelineBtn')) $('readTimelineBtn').onclick=readAllTimeCapsules;
-    $('exportJsonBtn').onclick=exportJson; $('exportCsvBtn').onclick=exportCsv; $('exportHtmlBtn').onclick=exportHtml; $('exportDocxBtn').onclick=exportDocx; $('exportXlsxBtn').onclick=exportXlsx; $('exportZipBtn').onclick=exportZip;
-    $('importBtn').onclick=()=> $('importFile').click(); $('importFile').onchange=e=>{ const files=[...e.target.files]; if(files.length) importBackup(files).catch(err=>toast('导入失败：'+err.message)); e.target.value=''; };
+    if($('cacheCoversBtn')) $('cacheCoversBtn').onclick=cacheCoversCurrent; if($('enrichTagsBtn')) $('enrichTagsBtn').onclick=enrichPublicTagsCurrent; if($('readTimelineBtn')) $('readTimelineBtn').onclick=readAllTimeCapsules;
+    if($('exportJsonBtn')) $('exportJsonBtn').onclick=exportJson; if($('exportCsvBtn')) $('exportCsvBtn').onclick=exportCsv; if($('exportHtmlBtn')) $('exportHtmlBtn').onclick=exportHtml; if($('exportDocxBtn')) $('exportDocxBtn').onclick=exportDocx; if($('exportXlsxBtn')) $('exportXlsxBtn').onclick=exportXlsx; if($('exportZipBtn')) $('exportZipBtn').onclick=exportZip;
+    if($('importBtn')) $('importBtn').onclick=()=> $('importFile').click(); if($('importFile')) $('importFile').onchange=e=>{ const files=[...e.target.files]; if(files.length) importBackup(files).catch(err=>toast('导入失败：'+err.message)); e.target.value=''; };
     window.addEventListener('keydown',e=>{ if(e.key==='Escape') closeAllModals(); });
     updateLongTaskUI();
   }
