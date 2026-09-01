@@ -19433,13 +19433,59 @@ html.electron-exact-effect{--bv-top-off:calc(var(--topbar-h) + 46px)}
       return {items,pageOrder:false};
     }
     async function chronicleContentPage(kind,page,indexId='',blogId='',signal=null){
-      if(!(await localApiAvailable(signal))) throw new Error('网页版无法抓取 Bangumi 页面，此步骤需要桌面版');
       const username=String(state.settings.username||state.profile?.username||'').trim();
-      const path=`/api/user-content-page?kind=${encodeURIComponent(kind)}&username=${encodeURIComponent(username)}&siteBase=${encodeURIComponent(siteBase())}&page=${page}&indexId=${encodeURIComponent(indexId)}&blogId=${encodeURIComponent(blogId)}`;
-      const result=await fetch(path,{cache:'no-store',signal:signal||undefined}); const response=await result.json().catch(()=>null);
-      if(!result.ok||!response?.ok) throw new Error(response?.error||`Bangumi 页面请求失败（HTTP ${result.status}）`);
-      if(!response.html) throw new Error('Bangumi 页面没有返回正文');
-      return response.html;
+      if(await localApiAvailable(signal)){
+        const path=`/api/user-content-page?kind=${encodeURIComponent(kind)}&username=${encodeURIComponent(username)}&siteBase=${encodeURIComponent(siteBase())}&page=${page}&indexId=${encodeURIComponent(indexId)}&blogId=${encodeURIComponent(blogId)}`;
+        const result=await fetch(path,{cache:'no-store',signal:signal||undefined}); const response=await result.json().catch(()=>null);
+        if(!result.ok||!response?.ok) throw new Error(response?.error||`Bangumi 页面请求失败（HTTP ${result.status}）`);
+        if(!response.html) throw new Error('Bangumi 页面没有返回正文');
+        return response.html;
+      }
+      // 网页版：经公共 CORS 代理直接抓取 bgm 页面
+      return await chronicleProxyFetchHtml(chroniclePageTargetUrl(kind,page,indexId,blogId),signal);
+    }
+    function chroniclePageTargetUrl(kind,page,indexId='',blogId=''){
+      const username=String(state.settings.username||state.profile?.username||'').trim();
+      const numeric=(value,label)=>{ const s=String(value||'').trim(); if(!/^\d{1,12}$/.test(s)) throw new Error(`${label}无效`); return s; };
+      let path;
+      switch(String(kind||'')){
+        case 'blog': path=`/user/${encodeURIComponent(username)}/blog`; break;
+        case 'blog-detail': path=`/blog/${numeric(blogId,'日志 ID')}`; break;
+        case 'group-topic-detail': path=`/group/topic/${numeric(blogId,'小组话题 ID')}`; break;
+        case 'subject-topic-detail': path=`/subject/topic/${numeric(blogId,'条目话题 ID')}`; break;
+        case 'index-created': path=`/user/${encodeURIComponent(username)}/index`; break;
+        case 'index-collected': path=`/user/${encodeURIComponent(username)}/index/collect`; break;
+        case 'index-detail': path=`/index/${numeric(indexId,'目录 ID')}`; break;
+        case 'index-comments': path=`/index/${numeric(indexId,'目录 ID')}/comments`; break;
+        default: throw new Error(`网页版暂不支持抓取该页面类型：${String(kind||'')}`);
+      }
+      const url=new URL(path,siteBase());
+      if((Number(page)||1)>1) url.searchParams.set('page',String(page));
+      return url.href;
+    }
+    const CHRONICLE_CORS_PROXIES=[
+      url=>`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+      url=>`https://corsproxy.io/?url=${encodeURIComponent(url)}`,
+      url=>`https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(url)}`
+    ];
+    async function chronicleProxyFetchHtml(url,signal=null){
+      if(!/^https?:/i.test(url)) throw new Error('页面地址无效');
+      let lastError=new Error('没有可用代理');
+      for(let i=0;i<CHRONICLE_CORS_PROXIES.length;i++){
+        const build=CHRONICLE_CORS_PROXIES[i];
+        try{
+          const r=await fetch(build(url),{cache:'no-store',signal:signal||undefined});
+          if(!r.ok) throw new Error(`HTTP ${r.status}`);
+          const text=await r.text();
+          if(text&&text.length>200) return text;
+          throw new Error('代理返回内容为空');
+        }catch(error){
+          if(error?.name==='AbortError')throw error;
+          lastError=error;
+          console.warn(`公共代理 #${i+1} 抓取失败：`, error?.message||error);
+        }
+      }
+      throw new Error(`公共代理抓取失败：${lastError?.message||lastError}`);
     }
 
     /* ---------- fetchers ---------- */
@@ -19447,7 +19493,6 @@ html.electron-exact-effect{--bv-top-off:calc(var(--topbar-h) + 46px)}
       const id=String(blogId||''); const item=chronicleBlogs.items.find(row=>String(row.id)===id); if(!item)return;
       if(item.content_html&&!force){chronicleRenderBody();return;}
       if(chronicleBusy.blog===id)return;
-      if(!(await localApiAvailable())){toast('网页版无法直接抓取，请先用桌面版缓存日志全文并同步到云端');return;}
       chronicleBusy.blog=id;
       if(chronicleOpen)chronicleRenderBody();
       try{
@@ -19469,7 +19514,6 @@ html.electron-exact-effect{--bv-top-off:calc(var(--topbar-h) + 46px)}
       const item=entry.item,busyKey=`${id}:${key}`;
       if(item.content_html&&!force&&!chronicleIndexArticleNeedsMetadata(entry)){if(chronicleOpen)chronicleRenderBody();return;}
       if(chronicleBusy.indexArticle===busyKey)return;
-      if(!(await localApiAvailable())){toast('网页版无法直接抓取，请先用桌面版缓存文章全文并同步到云端');return;}
       chronicleBusy.indexArticle=busyKey;
       if(chronicleOpen)chronicleRenderBody();
       try{
@@ -19504,7 +19548,7 @@ html.electron-exact-effect{--bv-top-off:calc(var(--topbar-h) + 46px)}
       const task=beginLongTask(isBlog?'用户日志':kind==='index-created'?'创建目录':'收藏目录'); if(!task)return;
       openModal('syncModal'); $('syncLog').textContent=''; setProgress(0);
       $('syncTitle').textContent=`网页版更新${isBlog?'日志':'目录'}`;
-      $('syncHelp').textContent='网页版无法直接抓取 Bangumi 页面，改为读取桌面版已同步到云端的缓存。';
+      $('syncHelp').textContent='公共代理不可用，改为读取桌面版已同步到云端的缓存。';
       log('syncLog','正在从云端读取...');
       try{
         const data=await cloudFetchChronicle(cfg);
@@ -19524,7 +19568,11 @@ html.electron-exact-effect{--bv-top-off:calc(var(--topbar-h) + 46px)}
     }
     async function chronicleFetchList(kind){
       const username=String(state.settings.username||state.profile?.username||'').trim(); if(!username){toast('请先在设置中填写 Bangumi 用户名');return;}
-      if(!(await localApiAvailable())){ await chronicleRefreshFromCloud(kind); return; }
+      if(!(await localApiAvailable())){
+        // 网页版：优先经公共代理直读；全部代理不可用时回退云端缓存
+        try{ await chronicleProxyFetchHtml(chroniclePageTargetUrl(kind,1)); }
+        catch(proxyError){ toast('公共代理不可用，改为从云端读取缓存'); await chronicleRefreshFromCloud(kind); return; }
+      }
       const isBlog=kind==='blog'; const field=kind==='index-created'?'created':'collected'; const timelineFallback=isBlog?[]:chronicleIndicesFromTimeline(field); let old=isBlog?chronicleBlogs.items:chronicleMergeItems(chronicleIndices[field],timelineFallback);
       const sameAccount=(isBlog?String(chronicleBlogs.username||''):String(chronicleIndices.username||''))===username;
       if(!sameAccount)old=isBlog?[]:timelineFallback;
