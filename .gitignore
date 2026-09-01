@@ -1,5 +1,8 @@
 node_modules/
 .npm-cache/
+.npm-tmp/
+.electron-cache/
+.electron-builder-cache/
 dist/
 *.log
 资料库/
