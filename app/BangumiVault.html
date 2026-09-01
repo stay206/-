@@ -6688,7 +6688,7 @@ html.electron-exact-effect{--bv-top-off:calc(var(--topbar-h) + 46px)}
             </div>
             <div>
               <div class="field"><label>仓库</label><div style="display:flex;gap:6px"><select id="githubRepoInput"><option value="">— 请先加载仓库列表 —</option></select><button class="btn small" id="refreshGithubReposBtn" title="用上面的 GitHub Token 拉取账号已有仓库">↻ 加载</button></div><div class="help">需要填写有效的 GitHub Token 后再加载，列表从你账号拥有/协作的仓库中选取。</div></div>
-              <div class="field"><label>分支</label><div style="display:flex;gap:6px"><select id="githubBranchInput"><option value="">— 请先加载分支列表 —</option></select><button class="btn small" id="refreshGithubBranchesBtn" title="根据仓库加载分支">↻ 加载</button></div><div class="help">数据写入该分支的 vault/state.json。</div></div>
+              <div class="field"><label>分支</label><input id="githubBranchInput" placeholder="资料库" /><div class="help">数据写入该分支的 vault/state.json；分支不存在时推送会自动创建。</div></div>
             </div>
           </div>
           <div class="network-warning" style="margin-top:8px">仓库公开时备份内容任何人都能读取；GitHub Token 永远不会写入云端数据。本地浏览器库仍是主数据源，云端用于跨设备恢复。</div>
@@ -6821,7 +6821,7 @@ html.electron-exact-effect{--bv-top-off:calc(var(--topbar-h) + 46px)}
   function statusMapForNav(){ return filters.type ? (STATUS_BY_TYPE[Number(filters.type)] || STATUS) : STATUS; }
   const SUBJECT_LABEL = {1:'书籍',2:'动画',3:'音乐',4:'游戏',6:'三次元'};
   const BGM_TYPE_PATH = {1:'book',2:'anime',3:'music',4:'game',6:'real'};
-  const DEFAULT_STATE = {schema:18, settings:{username:'', token:'', rememberToken:false, theme:'system', themeMode:'system', recentMonths:3, fontFamily:'system', customFont:'', cardSize:'standard', pageSize:120, commentLines:0, motion:'full', uiVersion:'lg26', uiVersionPicked:false, shelfMode:'auto', accentColor:'sakura', borderWidth:1, apiBase:'', imageProxyBase:'', siteBase:'', customApiPrivate:false, profileIntro:'', githubToken:'', githubRepo:'', githubBranch:''}, collections:{}, history:[], runs:[], profile:null, storageMeta:null};
+  const DEFAULT_STATE = {schema:18, settings:{username:'', token:'', rememberToken:false, theme:'system', themeMode:'system', recentMonths:3, fontFamily:'system', customFont:'', cardSize:'standard', pageSize:120, commentLines:0, motion:'full', uiVersion:'lg26', uiVersionPicked:false, shelfMode:'auto', accentColor:'sakura', borderWidth:1, apiBase:'', imageProxyBase:'', siteBase:'', customApiPrivate:false, profileIntro:'', githubToken:'', githubRepo:'', githubBranch:'资料库'}, collections:{}, history:[], runs:[], profile:null, storageMeta:null};
   let state = structuredClone(DEFAULT_STATE);
   let filters = {status:0, tag:'全部', type:0, q:'', sort:'updated_desc'};
   let tagSearchOpen = false;
@@ -9696,7 +9696,7 @@ html.electron-exact-effect{--bv-top-off:calc(var(--topbar-h) + 46px)}
     if($('githubBranchInput')) state.settings.githubBranch = $('githubBranchInput').value.trim();
     runtimeToken = $('tokenInput').value.trim() || runtimeToken; applyAppearance(false); refreshSegmentedControls(); resetRenderLimit(); await saveState({collections:false, history:false}); render(); toast(window.BANGUMI_VAULT_OFFLINE_STATE ? '个性化设置已应用' : '设置已保存');
   }
-  function fillSettingsUI(){ renderBuildStamp(); $('tokenInput').value = state.settings.rememberToken ? (state.settings.token||'') : runtimeToken; $('usernameInput').value = state.settings.username||''; if($('recentMonthsInput')) $('recentMonthsInput').value = state.settings.recentMonths || 3; if($('pageSizeInput')) $('pageSizeInput').value = pageSize(); if($('commentLinesInput')) $('commentLinesInput').value = clampNum(state.settings.commentLines,0,6,0); if($('customFontInput')) $('customFontInput').value = state.settings.customFont || ''; if($('borderWidthInput')) $('borderWidthInput').value = clampNum(state.settings.borderWidth,0,4,1); if($('apiBaseInput')) $('apiBaseInput').value = state.settings.apiBase || ''; if($('imageProxyBaseInput')) $('imageProxyBaseInput').value = state.settings.imageProxyBase || ''; if($('siteBaseInput')) $('siteBaseInput').value = state.settings.siteBase || ''; if($('profileIntroInput')) $('profileIntroInput').value = state.settings.profileIntro || ''; if($('customApiPrivateInput')) $('customApiPrivateInput').checked = !!state.settings.customApiPrivate; if($('githubTokenInput')) $('githubTokenInput').value = state.settings.githubToken || ''; if($('githubRepoInput')) { const sel=$('githubRepoInput'); const v=String(state.settings.githubRepo||'').trim(); if(v){ let found=false; for(const o of sel.options){ if(o.value===v){ found=true; break; } } if(!found){ const opt=document.createElement('option'); opt.value=v; opt.textContent=v; opt.dataset.fromSaved='1'; sel.appendChild(opt); } sel.value=v; } else { sel.value=''; } } if($('githubBranchInput')) { const sel=$('githubBranchInput'); const v=String(state.settings.githubBranch||'').trim(); if(v){ let found=false; for(const o of sel.options){ if(o.value===v){ found=true; break; } } if(!found){ const opt=document.createElement('option'); opt.value=v; opt.textContent=v; opt.dataset.fromSaved='1'; sel.appendChild(opt); } sel.value=v; } else { sel.value=''; } } $('rememberTokenInput').checked = !!state.settings.rememberToken; refreshSegmentedControls(); }
+  function fillSettingsUI(){ renderBuildStamp(); $('tokenInput').value = state.settings.rememberToken ? (state.settings.token||'') : runtimeToken; $('usernameInput').value = state.settings.username||''; if($('recentMonthsInput')) $('recentMonthsInput').value = state.settings.recentMonths || 3; if($('pageSizeInput')) $('pageSizeInput').value = pageSize(); if($('commentLinesInput')) $('commentLinesInput').value = clampNum(state.settings.commentLines,0,6,0); if($('customFontInput')) $('customFontInput').value = state.settings.customFont || ''; if($('borderWidthInput')) $('borderWidthInput').value = clampNum(state.settings.borderWidth,0,4,1); if($('apiBaseInput')) $('apiBaseInput').value = state.settings.apiBase || ''; if($('imageProxyBaseInput')) $('imageProxyBaseInput').value = state.settings.imageProxyBase || ''; if($('siteBaseInput')) $('siteBaseInput').value = state.settings.siteBase || ''; if($('profileIntroInput')) $('profileIntroInput').value = state.settings.profileIntro || ''; if($('customApiPrivateInput')) $('customApiPrivateInput').checked = !!state.settings.customApiPrivate; if($('githubTokenInput')) $('githubTokenInput').value = state.settings.githubToken || ''; if($('githubRepoInput')) { const sel=$('githubRepoInput'); const v=String(state.settings.githubRepo||'').trim(); if(v){ let found=false; for(const o of sel.options){ if(o.value===v){ found=true; break; } } if(!found){ const opt=document.createElement('option'); opt.value=v; opt.textContent=v; opt.dataset.fromSaved='1'; sel.appendChild(opt); } sel.value=v; } else { sel.value=''; } } if($('githubBranchInput')) $('githubBranchInput').value = state.settings.githubBranch || '资料库'; $('rememberTokenInput').checked = !!state.settings.rememberToken; refreshSegmentedControls(); }
 
 
   /* ---- 云端同步：本地资料库 <-> GitHub 仓库「资料库」分支（Contents API 直推方案） ---- */
@@ -9749,15 +9749,6 @@ html.electron-exact-effect{--bv-top-off:calc(var(--topbar-h) + 46px)}
           const o=document.createElement('option'); o.value=existingValue; o.textContent=existingValue+'  (已保存)'; o.dataset.fromSaved='1'; sel.appendChild(o);
         }
         sel.value = existingValue && seen.has(existingValue) ? existingValue : (existingValue || '');
-        /* 仓库变了 → 分支列表可能也失效，清空提示重新加载 */
-        if($('githubBranchInput')){
-          const bsel = $('githubBranchInput');
-          [...bsel.querySelectorAll('option[data-from-saved], option[data-from-branch]')].forEach(o=>o.remove());
-          const bp = bsel.querySelector('option[value=""]');
-          bsel.innerHTML = '';
-          if(bp){ bsel.appendChild(bp); } else { const p=document.createElement('option'); p.value=''; p.textContent='— 请先选择仓库再加载分支 —'; bsel.appendChild(p); }
-          bsel.value='';
-        }
         if(items.length === 0){ toast('当前 Token 没有可见仓库，请检查权限'); }
         else { toast(`已加载 ${items.length} 个仓库`); }
       }catch(error){
@@ -9770,62 +9761,34 @@ html.electron-exact-effect{--bv-top-off:calc(var(--topbar-h) + 46px)}
     return githubRepoLoadPromise;
   }
 
-  /* 根据当前选中的仓库拉取分支列表，填充 githubBranchInput <select> */
-  let githubBranchLoadPromise = null;
-  async function fetchGithubBranches(force=false){
-    const rsel = $('githubRepoInput');
-    const bsel = $('githubBranchInput');
-    const btn = $('refreshGithubBranchesBtn');
-    if(!bsel) return;
-    const token = String($('githubTokenInput')?.value || state.settings.githubToken || '').trim();
-    const repoFull = String(rsel?.value || state.settings.githubRepo || '').trim();
-    if(!token){ toast('请先填写 GitHub Token'); return; }
-    if(!repoFull){ toast('请先选择仓库'); return; }
-    if(!force && githubBranchLoadPromise) return githubBranchLoadPromise;
-    githubBranchLoadPromise = (async () => {
-      const existingValue = bsel.value;
-      if(btn){ btn.disabled = true; btn.textContent = '加载中…'; }
-      try{
-        const seen = new Set();
-        const items = [];
-        let page = 1;
-        while(items.length < 300){
-          const url = `https://api.github.com/repos/${encodeURIComponent(repoFull)}/branches?per_page=100&page=${page}`;
-          const res = await fetch(url, {headers:{Accept:'application/vnd.github+json', Authorization:'Bearer '+token}});
-          if(res.status === 401){ throw new Error('GitHub Token 无效或已过期'); }
-          if(res.status === 404){ throw new Error('仓库不存在或无访问权限：'+repoFull); }
-          if(!res.ok){ throw new Error('获取分支列表失败 HTTP '+res.status); }
-          const chunk = await res.json();
-          if(!Array.isArray(chunk) || chunk.length === 0) break;
-          chunk.forEach(b=>{
-            const key = String(b.name || '').trim();
-            if(!key || seen.has(key)) return;
-            seen.add(key); items.push(key);
-          });
-          if(chunk.length < 100) break; page++;
-        }
-        [...bsel.querySelectorAll('option[data-from-saved], option[data-from-branch]')].forEach(o=>o.remove());
-        const placeholder = bsel.querySelector('option[value=""]');
-        bsel.innerHTML = '';
-        if(placeholder) bsel.appendChild(placeholder);
-        else { const p=document.createElement('option'); p.value=''; p.textContent='— 请选择分支 —'; bsel.appendChild(p); }
-        items.forEach(b=>{
-          const o=document.createElement('option'); o.value=b; o.textContent=b; o.dataset.fromBranch='1'; bsel.appendChild(o);
-        });
-        if(existingValue && !seen.has(existingValue)){
-          const o=document.createElement('option'); o.value=existingValue; o.textContent=existingValue+'  (已保存)'; o.dataset.fromSaved='1'; bsel.appendChild(o);
-        }
-        bsel.value = existingValue && seen.has(existingValue) ? existingValue : (existingValue || '');
-        if(items.length === 0){ toast('该仓库没有分支或无权限访问'); }
-        else { toast(`已加载 ${items.length} 个分支`); }
-      }catch(error){
-        toast('加载分支列表失败：' + (error?.message || error));
-      }finally{
-        if(btn){ btn.disabled = false; btn.textContent = '↻ 加载'; }
-        githubBranchLoadPromise = null;
+  /* 分支不存在时自动创建：从仓库默认分支 HEAD 新建 cfg.branch */
+  async function cloudEnsureBranch(cfg){
+    try{
+      const check = await fetch(`${cfg.api}/branches/${encodeURIComponent(cfg.branch)}`, {headers: githubHeaders(cfg)});
+      if(check.ok) return;                       // 分支已存在
+      if(check.status === 401 || check.status === 403) throw new Error('GitHub Token 无效或无权限（' + check.status + '）');
+      if(check.status !== 404) throw new Error('检查分支失败：HTTP ' + check.status);
+      const repo = await fetch(cfg.api, {headers: githubHeaders(cfg)});
+      if(!repo.ok) throw new Error('读取仓库信息失败：HTTP ' + repo.status);
+      const base = (await repo.json())?.default_branch || 'main';
+      const ref = await fetch(`${cfg.api}/git/ref/heads/${encodeURIComponent(base)}`, {headers: githubHeaders(cfg)});
+      if(!ref.ok) throw new Error(`读取默认分支「${base}」失败：HTTP ` + ref.status);
+      const sha = (await ref.json())?.object?.sha;
+      if(!sha) throw new Error('无法获取默认分支 HEAD 提交');
+      const create = await fetch(`${cfg.api}/git/refs`, {
+        method: 'POST',
+        headers: githubHeaders(cfg, true),
+        body: JSON.stringify({ ref: 'refs/heads/' + cfg.branch, sha })
+      });
+      if(!create.ok && create.status !== 422){   // 422 = 分支已存在（并发场景），可忽略
+        const t = await create.text();
+        throw new Error(`自动创建分支「${cfg.branch}」失败：HTTP ${create.status} ${t.slice(0, 120)}`);
       }
-    })();
-    return githubBranchLoadPromise;
+      toast(`已自动创建分支「${cfg.branch}」`);
+    }catch(error){
+      if(/Failed to fetch|NetworkError/i.test(String(error?.message))) return; // 网络问题留给后续推送报错
+      throw error;
+    }
   }
 
   async function cloudPutTimeline(cfg, data){
@@ -9847,8 +9810,8 @@ html.electron-exact-effect{--bv-top-off:calc(var(--topbar-h) + 46px)}
     if(!repoFull) throw new Error('请先在设置中选择要使用的 GitHub 仓库');
     const slash = repoFull.indexOf('/');
     if(slash <= 0 || slash === repoFull.length - 1) throw new Error('仓库格式应为 用户名/仓库名');
-    const branch = String(state.settings.githubBranch || '').trim();
-    if(!branch) throw new Error('请先在设置中选择要使用的分支');
+    const branch = String(state.settings.githubBranch || '').trim() || '资料库';
+    if(!branch) throw new Error('请先在设置中填写要使用的分支');
     return { owner: repoFull.slice(0, slash), name: repoFull.slice(slash + 1), branch, token: String(state.settings.githubToken || '').trim(), api: `https://api.github.com/repos/${repoFull}` };
   }
   function githubHeaders(cfg, jsonBody){
@@ -9944,6 +9907,7 @@ html.electron-exact-effect{--bv-top-off:calc(var(--topbar-h) + 46px)}
     try{
       const data = cloudCollectData();
       const count = Object.keys(data.collections || {}).length;
+      await cloudEnsureBranch(cfg);
       const size = await cloudPutFile(cfg, data);
       toast(`已同步到云端「${cfg.branch}」（${count} 条，${(size / 1024).toFixed(0)} KB）`);
     }catch(error){ toast('云端同步失败：' + (error?.message || error)); }
@@ -11066,9 +11030,6 @@ html.electron-exact-effect{--bv-top-off:calc(var(--topbar-h) + 46px)}
     if($('openTokenBtn')) $('openTokenBtn').onclick=()=> window.open(TOKEN_URL,'_blank','noopener'); if($('testLoginBtn')) $('testLoginBtn').onclick=testLogin; if($('saveSettingsBtn')) $('saveSettingsBtn').onclick=saveSettingsFromUI;
     if($('openGithubTokenBtn')) $('openGithubTokenBtn').onclick=()=> window.open(GITHUB_TOKEN_URL,'_blank','noopener');
     if($('refreshGithubReposBtn')) $('refreshGithubReposBtn').onclick=()=> fetchGithubRepos(true);
-    if($('refreshGithubBranchesBtn')) $('refreshGithubBranchesBtn').onclick=()=> fetchGithubBranches(true);
-    if($('githubTokenInput')){ $('githubTokenInput').addEventListener('change', ()=>{ /* Token 变更时若已有值则提示重新加载仓库 */ }); }
-    if($('githubRepoInput')){ $('githubRepoInput').addEventListener('change', ()=> fetchGithubBranches().catch(()=>{})); }
     if($('syncBtn')) $('syncBtn').onclick=syncRecent; if($('fullSyncBtn')) $('fullSyncBtn').onclick=syncAll; if($('cloudSyncBtn')) $('cloudSyncBtn').onclick=cloudPush; if($('cloudRestoreBtn')) $('cloudRestoreBtn').onclick=()=>cloudRestore(false);
     if($('cloudSaveBtn')) $('cloudSaveBtn').onclick=async ()=>{
       state.settings.githubToken = $('githubTokenInput').value.trim();
