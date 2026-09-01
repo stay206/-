@@ -9811,11 +9811,20 @@ html.electron-exact-effect{--bv-top-off:calc(var(--topbar-h) + 46px)}
   async function cloudPutChronicle(cfg, data){
     if(!data) return 0;
     const body = JSON.stringify(data);
-    let sha = '';
-    try{ const r=await fetch(`${cfg.api}/contents/${CLOUD_CHRONICLE_PATH}?ref=${encodeURIComponent(cfg.branch)}`, {headers:githubHeaders(cfg)}); if(r.status===200) sha=(await r.json())?.sha||''; else if(r.status===401) throw new Error('GitHub Token 无效（401）'); }catch(error){ if(!/Failed to fetch|NetworkError/i.test(String(error?.message))) throw error; }
-    const put=await fetch(`${cfg.api}/contents/${CLOUD_CHRONICLE_PATH}`, {method:'PUT', headers:githubHeaders(cfg,true), body:JSON.stringify({message:`日志/目录同步 ${new Date().toLocaleString('zh-CN')}`, content:encodeBase64Utf8(body), branch:cfg.branch, ...(sha?{sha}:{})})});
-    if(!put.ok){ const t=await put.text(); if(put.status===404) throw new Error(`分支「${cfg.branch}」不存在`); throw new Error(`日志/目录推送失败 ${put.status}`); }
-    return body.length;
+    let lastError = null;
+    // 与 cloudPutFile 相同：sha 缓存延迟导致的 409/422 重取重试
+    for(let attempt = 0; attempt < 3; attempt++){
+      if(attempt) await new Promise(resolve => setTimeout(resolve, 1200));
+      let sha = '';
+      try{ const r=await fetch(`${cfg.api}/contents/${CLOUD_CHRONICLE_PATH}?ref=${encodeURIComponent(cfg.branch)}`, {headers:githubHeaders(cfg)}); if(r.status===200) sha=(await r.json())?.sha||''; else if(r.status===401) throw new Error('GitHub Token 无效（401）'); }catch(error){ if(!/Failed to fetch|NetworkError/i.test(String(error?.message))) throw error; }
+      const put=await fetch(`${cfg.api}/contents/${CLOUD_CHRONICLE_PATH}`, {method:'PUT', headers:githubHeaders(cfg,true), body:JSON.stringify({message:`日志/目录同步 ${new Date().toLocaleString('zh-CN')}`, content:encodeBase64Utf8(body), branch:cfg.branch, ...(sha?{sha}:{})})});
+      if(put.ok) return body.length;
+      const t=await put.text();
+      if(put.status===404) throw new Error(`分支「${cfg.branch}」不存在`);
+      lastError = new Error(`日志/目录推送失败 ${put.status} ${t.slice(0, 120)}`);
+      if(put.status !== 409 && put.status !== 422) throw lastError;
+    }
+    throw lastError;
   }
   async function cloudFetchChronicle(cfg){
     try{ const r=await fetch(`https://raw.githubusercontent.com/${cfg.owner}/${cfg.name}/${encodeURIComponent(cfg.branch)}/${CLOUD_CHRONICLE_PATH}`, {cache:'no-store'}); if(r.ok) return await r.json(); }catch{}
@@ -9877,27 +9886,32 @@ html.electron-exact-effect{--bv-top-off:calc(var(--topbar-h) + 46px)}
   }
   async function cloudPutFile(cfg, content){
     const bodyText = JSON.stringify(content);
-    let sha = '';
-    try{
-      const res = await fetch(`${cfg.api}/contents/${CLOUD_PATH}?ref=${encodeURIComponent(cfg.branch)}`, {headers: githubHeaders(cfg)});
-      if(res.status === 200) sha = (await res.json())?.sha || '';
-      else if(res.status === 401) throw new Error('GitHub Token 无效或已过期（401）');
-      else if(res.status === 403) throw new Error('GitHub 拒绝访问（403）：请确认 Token 具有本仓库 Contents 权限');
-      else if(res.status !== 404) throw new Error('查询云端文件失败：HTTP ' + res.status);
-    }catch(error){ if(!/Failed to fetch|NetworkError/i.test(String(error?.message))) throw error; }
-    const put = await fetch(`${cfg.api}/contents/${CLOUD_PATH}`, {
-      method: 'PUT',
-      headers: githubHeaders(cfg, true),
-      body: JSON.stringify({ message: `Bangumi 保管库云端同步 ${new Date().toLocaleString('zh-CN')}`, content: encodeBase64Utf8(bodyText), branch: cfg.branch, ...(sha ? {sha} : {}) })
-    });
-    if(!put.ok){
+    let lastError = null;
+    // GitHub Contents API 的 sha 查询存在缓存延迟，文件刚被更新过（自动/手动同步并发、多设备交替）时 PUT 会报 409 does not match，重取 sha 即可恢复
+    for(let attempt = 0; attempt < 3; attempt++){
+      if(attempt) await new Promise(resolve => setTimeout(resolve, 1200));
+      let sha = '';
+      try{
+        const res = await fetch(`${cfg.api}/contents/${CLOUD_PATH}?ref=${encodeURIComponent(cfg.branch)}`, {headers: githubHeaders(cfg)});
+        if(res.status === 200) sha = (await res.json())?.sha || '';
+        else if(res.status === 401) throw new Error('GitHub Token 无效或已过期（401）');
+        else if(res.status === 403) throw new Error('GitHub 拒绝访问（403）：请确认 Token 具有本仓库 Contents 权限');
+        else if(res.status !== 404) throw new Error('查询云端文件失败：HTTP ' + res.status);
+      }catch(error){ if(!/Failed to fetch|NetworkError/i.test(String(error?.message))) throw error; }
+      const put = await fetch(`${cfg.api}/contents/${CLOUD_PATH}`, {
+        method: 'PUT',
+        headers: githubHeaders(cfg, true),
+        body: JSON.stringify({ message: `Bangumi 保管库云端同步 ${new Date().toLocaleString('zh-CN')}`, content: encodeBase64Utf8(bodyText), branch: cfg.branch, ...(sha ? {sha} : {}) })
+      });
+      if(put.ok) return bodyText.length;
       const text = await put.text();
       if(put.status === 401) throw new Error('GitHub Token 无效或已过期（401）');
       if(put.status === 403) throw new Error('GitHub 拒绝访问（403）：请确认 Token 具有本仓库 Contents 写权限');
       if(put.status === 404) throw new Error(`分支「${cfg.branch}」不存在（404）：请先在仓库创建该分支`);
-      throw new Error('推送失败：HTTP ' + put.status + ' ' + text.slice(0, 180));
+      lastError = new Error('推送失败：HTTP ' + put.status + ' ' + text.slice(0, 180));
+      if(put.status !== 409 && put.status !== 422) throw lastError;
     }
-    return bodyText.length;
+    throw lastError;
   }
   async function cloudFetchData(cfg){
     let rawFailed = false;
