@@ -4,6 +4,7 @@ node_modules/
 .electron-cache/
 .electron-builder-cache/
 dist/
+dist2/
 *.log
 资料库/
 *.tmp
