@@ -1,14 +1,17 @@
 {
   "name": "bangumi-vault",
-  "version": "0.31.3",
+  "version": "1.0.1",
   "description": "Bangumi 保管库：本地优先的 Bangumi 收藏备份桌面应用。",
   "main": "main.js",
   "private": true,
   "scripts": {
+    "test": "node --test test/*.test.js",
+    "check": "node --check main.js && node --check preload.js",
     "start": "electron .",
     "pack": "electron-builder --dir",
     "dist": "electron-builder",
-    "dist:win": "electron-builder --win"
+    "dist:win": "electron-builder --win",
+    "source:zip": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-source.ps1"
   },
   "author": "AKISATO",
   "license": "MIT",
@@ -21,8 +24,9 @@
     "url": "https://github.com/AKISATO57/AKI-Bangumi-Vault/issues"
   },
   "devDependencies": {
-    "electron": "37.2.6",
-    "electron-builder": "26.0.12"
+    "electron": "39.8.10",
+    "electron-builder": "26.15.7",
+    "linkedom": "0.18.12"
   },
   "build": {
     "appId": "io.github.akisato.bangumi.vault",
@@ -32,6 +36,7 @@
       "main.js",
       "preload.js",
       "package.json",
+      "lib/**/*",
       "scripts/**/*"
     ],
     "extraResources": [

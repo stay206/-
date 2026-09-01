@@ -1,5 +1,5 @@
 param(
-  [string]$Version = "37.2.6",
+  [string]$Version = "39.8.10",
   [string]$Mirror = "https://npmmirror.com/mirrors/electron/"
 )
 

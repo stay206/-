@@ -1,0 +1,7 @@
+node_modules/
+.npm-cache/
+dist/
+*.log
+资料库/
+*.tmp
+.DS_Store

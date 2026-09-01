@@ -4,8 +4,9 @@
 
 > 本项目是独立第三方工具，不隶属于 Bangumi，也不代表 Bangumi 官方。
 
-<img width="2468" height="1466" alt="界面1" src="https://github.com/user-attachments/assets/124161de-a6ad-4f16-8b98-d03b39ca6ab1" />
-<img width="2468" height="1534" alt="界面2" src="https://github.com/user-attachments/assets/f9881869-4f98-412c-bcba-722a85cf9587" />
+<img width="2306" height="1463" alt="界面1" src="https://github.com/user-attachments/assets/9152cfa6-d92a-4c2e-a437-c9f95e252228" />
+<img width="2581" height="1616" alt="界面2" src="https://github.com/user-attachments/assets/e0f96b26-33cc-4555-a344-5bb8ecc49c90" />
+<img width="2581" height="1616" alt="界面3" src="https://github.com/user-attachments/assets/927e47ec-3c97-4cdd-8017-e90a1c26c1d2" />
 UI我还是挺满意的（确信
 
 ## 下载与使用
