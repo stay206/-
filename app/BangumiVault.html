@@ -9805,6 +9805,44 @@ html.electron-exact-effect{--bv-top-off:calc(var(--topbar-h) + 46px)}
     if(!res.ok) throw new Error('读取云端时间胶囊失败：HTTP '+res.status);
     const info=await res.json(); return JSON.parse(decodeBase64Utf8(info.content));
   }
+  const CLOUD_CHRONICLE_PATH = 'vault/chronicle.json';
+  let chronicleCloudPushTimer = 0;
+  let chronicleCloudPushing = false;
+  async function cloudPutChronicle(cfg, data){
+    if(!data) return 0;
+    const body = JSON.stringify(data);
+    let sha = '';
+    try{ const r=await fetch(`${cfg.api}/contents/${CLOUD_CHRONICLE_PATH}?ref=${encodeURIComponent(cfg.branch)}`, {headers:githubHeaders(cfg)}); if(r.status===200) sha=(await r.json())?.sha||''; else if(r.status===401) throw new Error('GitHub Token 无效（401）'); }catch(error){ if(!/Failed to fetch|NetworkError/i.test(String(error?.message))) throw error; }
+    const put=await fetch(`${cfg.api}/contents/${CLOUD_CHRONICLE_PATH}`, {method:'PUT', headers:githubHeaders(cfg,true), body:JSON.stringify({message:`日志/目录同步 ${new Date().toLocaleString('zh-CN')}`, content:encodeBase64Utf8(body), branch:cfg.branch, ...(sha?{sha}:{})})});
+    if(!put.ok){ const t=await put.text(); if(put.status===404) throw new Error(`分支「${cfg.branch}」不存在`); throw new Error(`日志/目录推送失败 ${put.status}`); }
+    return body.length;
+  }
+  async function cloudFetchChronicle(cfg){
+    try{ const r=await fetch(`https://raw.githubusercontent.com/${cfg.owner}/${cfg.name}/${encodeURIComponent(cfg.branch)}/${CLOUD_CHRONICLE_PATH}`, {cache:'no-store'}); if(r.ok) return await r.json(); }catch{}
+    const res=await fetch(`${cfg.api}/contents/${encodeURIComponent(CLOUD_CHRONICLE_PATH)}?ref=${encodeURIComponent(cfg.branch)}`, {headers:githubHeaders(cfg)});
+    if(res.status===404) return null;
+    if(!res.ok) throw new Error('读取云端日志/目录失败：HTTP '+res.status);
+    const info=await res.json(); return JSON.parse(decodeBase64Utf8(info.content));
+  }
+  // 桌面版：日志/目录缓存变化后自动同步到云端，供网页版读取
+  function scheduleChronicleCloudPush(delay=4000){
+    if(window.BANGUMI_VAULT_OFFLINE_STATE || chronicleCloudPushing) return;
+    clearTimeout(chronicleCloudPushTimer);
+    chronicleCloudPushTimer = setTimeout(async ()=>{
+      if(chronicleCloudPushing) return;
+      chronicleCloudPushing = true;
+      try{
+        const cfg = githubConfig();
+        if(!cfg.token) return;
+        const payload = window.__bvChronicleCloudPayload?.();
+        if(!payload) return;
+        await cloudEnsureBranch(cfg);
+        const size = await cloudPutChronicle(cfg, payload);
+        console.info(`日志/目录已自动同步到云端（${(size/1024).toFixed(0)} KB）`);
+      }catch(error){ console.warn('日志/目录云端同步失败：', error?.message || error); }
+      finally{ chronicleCloudPushing = false; }
+    }, delay);
+  }
   function githubConfig(){
     const repoFull = String(state.settings.githubRepo || '').trim().replace(/^https?:\/\/github\.com\//i, '').replace(/\.git$/i, '');
     if(!repoFull) throw new Error('请先在设置中选择要使用的 GitHub 仓库');
@@ -9909,7 +9947,9 @@ html.electron-exact-effect{--bv-top-off:calc(var(--topbar-h) + 46px)}
       const count = Object.keys(data.collections || {}).length;
       await cloudEnsureBranch(cfg);
       const size = await cloudPutFile(cfg, data);
-      toast(`已同步到云端「${cfg.branch}」（${count} 条，${(size / 1024).toFixed(0)} KB）`);
+      let chronicleNote = '';
+      try{ const cp = window.__bvChronicleCloudPayload?.(); if(cp){ const cs = await cloudPutChronicle(cfg, cp); chronicleNote = `，含日志/目录 ${(cs/1024).toFixed(0)} KB`; } }catch(chronicleError){ console.warn('日志/目录云端同步失败：', chronicleError?.message || chronicleError); }
+      toast(`已同步到云端「${cfg.branch}」（${count} 条，${(size / 1024).toFixed(0)} KB${chronicleNote}）`);
     }catch(error){ toast('云端同步失败：' + (error?.message || error)); }
     finally{ cloudSyncBusy = false; if(btn){ btn.disabled = false; btn.textContent = oldText || '同步到云端'; } }
   }
@@ -17285,27 +17325,45 @@ html.electron-exact-effect{--bv-top-off:calc(var(--topbar-h) + 46px)}
         chronicleIndexItems = chronicleNormalizeIndexItems(offline.index_items);
         return;
       }
-      if(!(await localApiAvailable())) return;
-      const [blogs,indices,indexItems] = await Promise.all([
-        localGetJSONSafe('/api/blog-cache'),localGetJSONSafe('/api/index-cache'),localGetJSONSafe('/api/index-items-cache')
-      ]);
-      chronicleBlogs = chronicleNormalizeBlogs(blogs.value);
-      chronicleIndices = chronicleNormalizeIndices(indices.value);
-      chronicleIndexItems = chronicleNormalizeIndexItems(indexItems.value);
+      if(await localApiAvailable()){
+        const [blogs,indices,indexItems] = await Promise.all([
+          localGetJSONSafe('/api/blog-cache'),localGetJSONSafe('/api/index-cache'),localGetJSONSafe('/api/index-items-cache')
+        ]);
+        chronicleBlogs = chronicleNormalizeBlogs(blogs.value);
+        chronicleIndices = chronicleNormalizeIndices(indices.value);
+        chronicleIndexItems = chronicleNormalizeIndexItems(indexItems.value);
+        return;
+      }
+      // 网页版：云端优先，回退 IndexedDB
+      let payload = null;
+      try{ payload = await cloudFetchChronicle(githubConfig()); }catch{}
+      if(!payload){ try{ payload = await idbGet('chronicle-cache'); }catch{} }
+      if(payload){
+        chronicleBlogs = chronicleNormalizeBlogs(payload.blogs);
+        chronicleIndices = chronicleNormalizeIndices(payload.indices);
+        chronicleIndexItems = chronicleNormalizeIndexItems(payload.index_items);
+      }
     }
     async function chronicleSave(kind,signal=null){
-      if(window.BANGUMI_VAULT_OFFLINE_STATE || !(await localApiAvailable(signal))) return false;
-      const map = {
-        blogs:['/api/blog-cache',chronicleBlogs],
-        indices:['/api/index-cache',chronicleIndices],
-        indexItems:['/api/index-items-cache',chronicleIndexItems]
-      };
-      const target = map[kind];
-      if(!target) return false;
-      await localPostJSON(target[0],target[1],signal);
-      return true;
+      if(window.BANGUMI_VAULT_OFFLINE_STATE) return false;
+      if(await localApiAvailable(signal)){
+        const map = {
+          blogs:['/api/blog-cache',chronicleBlogs],
+          indices:['/api/index-cache',chronicleIndices],
+          indexItems:['/api/index-items-cache',chronicleIndexItems]
+        };
+        const target = map[kind];
+        if(!target) return false;
+        await localPostJSON(target[0],target[1],signal);
+        scheduleChronicleCloudPush();
+        return true;
+      }
+      // 网页版：没有本地服务，写入 IndexedDB 持久化
+      try{ await idbSet('chronicle-cache', chroniclePayload()); return true; }
+      catch(error){ console.warn('chronicle IndexedDB save failed', error); return false; }
     }
     window.__bvArchiveOfflinePayload = chroniclePayload;
+    window.__bvChronicleCloudPayload = chroniclePayload;
     async function chronicleArchiveImageFiles(){
       const files={};
       const media=[];
@@ -19375,6 +19433,7 @@ html.electron-exact-effect{--bv-top-off:calc(var(--topbar-h) + 46px)}
       return {items,pageOrder:false};
     }
     async function chronicleContentPage(kind,page,indexId='',blogId='',signal=null){
+      if(!(await localApiAvailable(signal))) throw new Error('网页版无法抓取 Bangumi 页面，此步骤需要桌面版');
       const username=String(state.settings.username||state.profile?.username||'').trim();
       const path=`/api/user-content-page?kind=${encodeURIComponent(kind)}&username=${encodeURIComponent(username)}&siteBase=${encodeURIComponent(siteBase())}&page=${page}&indexId=${encodeURIComponent(indexId)}&blogId=${encodeURIComponent(blogId)}`;
       const result=await fetch(path,{cache:'no-store',signal:signal||undefined}); const response=await result.json().catch(()=>null);
@@ -19388,7 +19447,7 @@ html.electron-exact-effect{--bv-top-off:calc(var(--topbar-h) + 46px)}
       const id=String(blogId||''); const item=chronicleBlogs.items.find(row=>String(row.id)===id); if(!item)return;
       if(item.content_html&&!force){chronicleRenderBody();return;}
       if(chronicleBusy.blog===id)return;
-      if(!(await localApiAvailable())){toast('读取日志全文需要桌面版本地服务');return;}
+      if(!(await localApiAvailable())){toast('网页版无法直接抓取，请先用桌面版缓存日志全文并同步到云端');return;}
       chronicleBusy.blog=id;
       if(chronicleOpen)chronicleRenderBody();
       try{
@@ -19410,7 +19469,7 @@ html.electron-exact-effect{--bv-top-off:calc(var(--topbar-h) + 46px)}
       const item=entry.item,busyKey=`${id}:${key}`;
       if(item.content_html&&!force&&!chronicleIndexArticleNeedsMetadata(entry)){if(chronicleOpen)chronicleRenderBody();return;}
       if(chronicleBusy.indexArticle===busyKey)return;
-      if(!(await localApiAvailable())){toast('读取文章全文需要桌面版本地服务');return;}
+      if(!(await localApiAvailable())){toast('网页版无法直接抓取，请先用桌面版缓存文章全文并同步到云端');return;}
       chronicleBusy.indexArticle=busyKey;
       if(chronicleOpen)chronicleRenderBody();
       try{
@@ -19437,9 +19496,35 @@ html.electron-exact-effect{--bv-top-off:calc(var(--topbar-h) + 46px)}
       }
       return chronicleMergeItems(items,[]);
     }
+    // 网页版：无法直接抓取 bgm.tv 页面，改为从云端读取桌面版同步的缓存
+    async function chronicleRefreshFromCloud(kind){
+      const username=String(state.settings.username||state.profile?.username||'').trim(); if(!username){toast('请先在设置中填写 Bangumi 用户名');return;}
+      let cfg; try{ cfg=githubConfig(); }catch(error){ toast(error.message); openModal('settingsModal'); return; }
+      const isBlog=kind==='blog';
+      const task=beginLongTask(isBlog?'用户日志':kind==='index-created'?'创建目录':'收藏目录'); if(!task)return;
+      openModal('syncModal'); $('syncLog').textContent=''; setProgress(0);
+      $('syncTitle').textContent=`网页版更新${isBlog?'日志':'目录'}`;
+      $('syncHelp').textContent='网页版无法直接抓取 Bangumi 页面，改为读取桌面版已同步到云端的缓存。';
+      log('syncLog','正在从云端读取...');
+      try{
+        const data=await cloudFetchChronicle(cfg);
+        if(!data||(!data.blogs&&!data.indices)){ log('syncLog','云端还没有日志/目录缓存。请先用桌面版「更新日志 / 更新目录」，配置 GitHub 后会自动同步到云端。','warn'); toast('云端暂无日志/目录缓存'); return; }
+        const blogs=chronicleNormalizeBlogs(data.blogs), indices=chronicleNormalizeIndices(data.indices);
+        const cloudUser=String(blogs.username||indices.username||'');
+        if(cloudUser&&cloudUser!==username){ log('syncLog',`云端缓存属于账号「${cloudUser}」，与当前账号「${username}」不一致，已跳过。`,'warn'); toast('云端缓存属于其他账号'); return; }
+        chronicleBlogs=blogs; chronicleIndices=indices;
+        if(data.index_items) chronicleIndexItems=chronicleNormalizeIndexItems(data.index_items);
+        await chronicleSave('blogs');
+        setProgress(100);
+        log('syncLog',`已从云端恢复：日志 ${chronicleBlogs.items.length} 篇，创建目录 ${chronicleIndices.created.length} 个，收藏目录 ${chronicleIndices.collected.length} 个`);
+        toast('已从云端更新日志/目录');
+        if(chronicleOpen)chronicleRenderPanel(false);
+      }catch(error){ log('syncLog',`读取失败：${error?.message||error}`,'error'); toast(`读取失败：${error?.message||error}`); }
+      finally{ finishLongTask(task); }
+    }
     async function chronicleFetchList(kind){
       const username=String(state.settings.username||state.profile?.username||'').trim(); if(!username){toast('请先在设置中填写 Bangumi 用户名');return;}
-      if(!(await localApiAvailable())){toast('读取日志和目录需要桌面版本地服务');return;}
+      if(!(await localApiAvailable())){ await chronicleRefreshFromCloud(kind); return; }
       const isBlog=kind==='blog'; const field=kind==='index-created'?'created':'collected'; const timelineFallback=isBlog?[]:chronicleIndicesFromTimeline(field); let old=isBlog?chronicleBlogs.items:chronicleMergeItems(chronicleIndices[field],timelineFallback);
       const sameAccount=(isBlog?String(chronicleBlogs.username||''):String(chronicleIndices.username||''))===username;
       if(!sameAccount)old=isBlog?[]:timelineFallback;
